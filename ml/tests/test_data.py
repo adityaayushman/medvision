@@ -9,7 +9,9 @@ import pytest
 from medchron.data import (
     REGISTRY,
     Sample,
+    build_manifest_from_csv,
     build_manifest_from_folders,
+    build_multilabel_class_index,
     class_distribution,
     get_spec,
     read_manifest,
@@ -82,3 +84,34 @@ def test_registry_shape():
     assert len(recommended_v1()) == 2
     with pytest.raises(KeyError):
         get_spec("nope")
+
+
+def test_multilabel_class_index_builds_vocab_from_delimited_labels():
+    samples = [
+        Sample("a.png", "Cardiomegaly|Effusion"),
+        Sample("b.png", "Effusion"),
+        Sample("c.png", "No Finding"),
+        Sample("d.png", "Atelectasis|Cardiomegaly"),
+    ]
+    idx = build_multilabel_class_index(samples)
+    assert set(idx) == {"Cardiomegaly", "Effusion", "No Finding", "Atelectasis"}
+    # deterministic (sorted) regardless of input order
+    assert idx == build_multilabel_class_index(list(reversed(samples)))
+
+
+def test_build_manifest_from_csv_with_path_prefix(tmp_path):
+    csv_path = tmp_path / "labels.csv"
+    csv_path.write_text(
+        "Image Index,Finding Labels\n"
+        "img1.png,Cardiomegaly|Effusion\n"
+        "img2.png,No Finding\n"
+    )
+    samples = build_manifest_from_csv(
+        csv_path,
+        path_col="Image Index",
+        label_col="Finding Labels",
+        path_prefix=tmp_path / "images",
+    )
+    assert len(samples) == 2
+    assert samples[0].path == str(tmp_path / "images" / "img1.png")
+    assert samples[0].label == "Cardiomegaly|Effusion"

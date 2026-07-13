@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional, Union
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
+LABEL_DELIM = "|"  # matches NIH ChestX-ray14's native "Finding Labels" format
 
 
 @dataclass
@@ -58,20 +59,46 @@ def build_manifest_from_csv(
     path_col: str = "path",
     label_col: str = "label",
     patient_col: Optional[str] = None,
+    path_prefix: Union[str, Path, None] = None,
 ) -> List[Sample]:
-    """Index a dataset described by a labels CSV."""
+    """Index a dataset described by a labels CSV.
+
+    ``path_prefix`` is joined onto each row's ``path_col`` value — handy for
+    datasets (e.g. NIH ChestX-ray14) whose CSV only lists bare filenames
+    ("00000001_000.png") rather than full paths.
+    """
+    prefix = Path(path_prefix) if path_prefix else None
     samples: List[Sample] = []
     with open(csv_path, newline="", encoding="utf-8") as fh:
         reader = csv.DictReader(fh)
         for row in reader:
+            path = row[path_col]
+            if prefix is not None:
+                path = str(prefix / path)
             samples.append(
                 Sample(
-                    path=row[path_col],
+                    path=path,
                     label=str(row[label_col]),
                     patient_id=str(row[patient_col]) if patient_col else "",
                 )
             )
     return samples
+
+
+def build_multilabel_class_index(
+    samples: List[Sample], delim: str = LABEL_DELIM
+) -> Dict[str, int]:
+    """Deterministic label -> index mapping for multi-label datasets.
+
+    Each sample's ``label`` holds a delimiter-separated set of findings (e.g.
+    ``"Cardiomegaly|Effusion"``). Builds a sorted vocabulary of every distinct
+    finding seen across all samples, so the mapping is reproducible regardless
+    of row order.
+    """
+    vocab = set()
+    for s in samples:
+        vocab.update(part.strip() for part in s.label.split(delim) if part.strip())
+    return {label: i for i, label in enumerate(sorted(vocab))}
 
 
 def write_manifest(samples: List[Sample], out_path: Union[str, Path]) -> Path:

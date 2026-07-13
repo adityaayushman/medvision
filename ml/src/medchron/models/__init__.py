@@ -8,8 +8,8 @@ from .backbone import (
     trainable_parameter_count,
     unfreeze_top_fraction,
 )
-from .dataset import MedChronDataset, build_dataloaders, build_transforms
-from .evaluate import compute_metrics, evaluate_checkpoint
+from .dataset import MedChronDataset, Task, build_dataloaders, build_transforms
+from .evaluate import compute_metrics, compute_multilabel_metrics, evaluate_checkpoint
 from .inference import Predictor
 from .train import TrainConfig, train
 
@@ -21,11 +21,13 @@ __all__ = [
     "trainable_parameter_count",
     "default_gradcam_layer",
     "MedChronDataset",
+    "Task",
     "build_dataloaders",
     "build_transforms",
     "TrainConfig",
     "train",
     "compute_metrics",
+    "compute_multilabel_metrics",
     "evaluate_checkpoint",
     "Predictor",
 ]

@@ -20,6 +20,8 @@ dependencies = [
 # Pick ONE backend when you build the model layer (see README "GPU on Windows").
 tf = ["tensorflow>=2.15", "scikit-learn>=1.3", "pandas>=2.0", "matplotlib>=3.7"]
 torch = ["torch>=2.2", "torchvision>=0.17", "scikit-learn>=1.3", "pandas>=2.0", "matplotlib>=3.7"]
+# DICOM datasets (RSNA, VinDr, ...) ship images as .dcm, not PNG/JPG.
+dicom = ["pydicom>=2.4"]
 dev = ["pytest>=8.0", "ruff>=0.4"]
 
 [tool.setuptools.packages.find]

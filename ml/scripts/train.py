@@ -45,6 +45,9 @@ def main() -> None:
 
     ap.add_argument("--backbone", default="vgg16",
                     choices=["vgg16", "resnet50", "densenet121", "efficientnet_b0"])
+    ap.add_argument("--task", default="multiclass", choices=["multiclass", "multilabel"],
+                    help="multiclass: one label/image (e.g. RSNA). "
+                         "multilabel: several findings/image, '|'-delimited (e.g. NIH ChestX-ray14)")
     ap.add_argument("--modality", default="chest_xray", help="preprocess preset")
     ap.add_argument("--epochs-head", type=int, default=5)
     ap.add_argument("--epochs-finetune", type=int, default=10)
@@ -60,6 +63,7 @@ def main() -> None:
     preprocess: PreprocessConfig = get_config(args.modality)
     tcfg = TrainConfig(
         backbone=args.backbone,
+        task=args.task,
         epochs_head=args.epochs_head,
         epochs_finetune=args.epochs_finetune,
         batch_size=args.batch_size,
