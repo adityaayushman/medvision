@@ -1,0 +1,22 @@
+# Render Blueprint for the MedChron AI backend.
+# One-time setup: on render.com, "New" -> "Blueprint" -> connect the
+# adityaayushman/medvision GitHub repo. Render reads this file and deploys
+# the backend automatically; every push to main redeploys it.
+#
+# NOTE (free tier): disk is ephemeral (uploads/SQLite reset on redeploy or
+# restart after idle) and the service sleeps after 15 min idle (~30-50s cold
+# start on the next request). Fine for a demo; upgrade to a paid plan + a
+# persistent disk (or a hosted Postgres) for real patient-data persistence.
+services:
+  - type: web
+    name: medchron-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: MEDCHRON_MODALITY
+        value: chest_xray
+      - key: CORS_ORIGINS
+        value: https://medchron-ai.vercel.app,http://localhost:3000

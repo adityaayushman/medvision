@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, ScanLine, Users } from "lucide-react";
+import { Activity, Database, ScanLine, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/", label: "Overview", icon: Activity },
   { href: "/analyze", label: "Analyze", icon: ScanLine },
   { href: "/patients", label: "Patients", icon: Users },
+  { href: "/datasets", label: "Datasets", icon: Database },
 ];
 
 export function Navbar() {

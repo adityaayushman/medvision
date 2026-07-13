@@ -78,3 +78,14 @@ def test_analyze_rejects_non_image(client):
     files = {"file": ("bad.txt", b"not an image", "text/plain")}
     r = client.post("/api/analyze", files=files)
     assert r.status_code == 400
+
+
+def test_datasets_registry(client):
+    r = client.get("/api/datasets")
+    assert r.status_code == 200
+    specs = r.json()
+    assert any(s["key"] == "rsna_pneumonia" for s in specs)
+
+    r = client.get("/api/datasets/recommended")
+    assert r.status_code == 200
+    assert len(r.json()) == 2
