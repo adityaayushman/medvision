@@ -25,6 +25,9 @@ RUN pip install --no-cache-dir torch torchvision --index-url https://download.py
 COPY backend/requirements.txt backend/requirements.txt
 RUN pip install --no-cache-dir -r backend/requirements.txt
 COPY backend/app backend/app
+# Trained model served by the API (RSNA 3-class EfficientNet-B0). MODEL_CHECKPOINT
+# in render.yaml points here; without it the API runs in preprocess-only mode.
+COPY backend/model backend/model
 
 ENV PYTHONUNBUFFERED=1
 EXPOSE 8000

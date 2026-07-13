@@ -27,6 +27,8 @@ ml/artifacts/**
 *.pth
 *.onnx
 *.tfrecord
+# ...except the one deployed model the backend serves (tracked so Render can build it)
+!backend/model/*.pt
 
 # ---- Backend runtime ----
 *.db
