@@ -13,6 +13,9 @@ WORKDIR /app
 COPY ml/pyproject.toml ml/pyproject.toml
 COPY ml/src ml/src
 RUN pip install --no-cache-dir ./ml
+# scikit-learn: hard import-time dep of medchron.data.split (leak-safe splitting)
+# and medchron.models.evaluate — not in the base package, so install explicitly.
+RUN pip install --no-cache-dir scikit-learn
 
 # CPU-only torch/torchvision — the deploy target has no GPU, and the CUDA
 # wheels are ~10x larger for no benefit here. Verified working on CPU locally.
