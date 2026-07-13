@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Database, Loader2, ExternalLink, CheckCircle2, XCircle, Star } from "lucide-react";
-import { listDatasets } from "@/lib/api";
-import type { DatasetSpec } from "@/lib/types";
+import { AlertTriangle, CheckCircle2, Database, ExternalLink, Loader2, Star, XCircle } from "lucide-react";
+import { getHealth, listDatasets } from "@/lib/api";
+import type { DatasetSpec, Health } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const ACCESS_LABEL: Record<DatasetSpec["access"], string> = {
@@ -20,6 +20,7 @@ const ACCESS_STYLE: Record<DatasetSpec["access"], string> = {
 
 export default function DatasetsPage() {
   const [datasets, setDatasets] = useState<DatasetSpec[]>([]);
+  const [health, setHealth] = useState<Health | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,6 +29,7 @@ export default function DatasetsPage() {
       .then(setDatasets)
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load datasets"))
       .finally(() => setLoading(false));
+    getHealth().then(setHealth).catch(() => setHealth(null));
   }, []);
 
   return (
@@ -37,11 +39,33 @@ export default function DatasetsPage() {
         <h1 className="text-2xl font-bold">Training data</h1>
       </div>
       <p className="max-w-2xl text-sm text-slate-600 dark:text-slate-400">
-        MedChron AI is built and evaluated against a shortlisted set of public
-        medical-imaging datasets. Version 1 targets chest X-ray, pairing a
-        classification dataset with a lung-segmentation dataset for anatomical
-        ROI extraction — the same registry the training pipeline reads from.
+        This is a <strong>catalog of candidate datasets</strong> the platform's
+        training pipeline can target — not a record of what has already been
+        trained. Version 1 targets chest X-ray, pairing a classification
+        dataset with a lung-segmentation dataset for anatomical ROI extraction.
       </p>
+
+      {health && (
+        <div
+          className={cn(
+            "flex items-start gap-3 rounded-xl p-3 text-sm",
+            health.model_loaded
+              ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
+              : "bg-amber-50 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+          )}
+        >
+          {health.model_loaded ? (
+            <CheckCircle2 className="h-5 w-5 shrink-0" />
+          ) : (
+            <AlertTriangle className="h-5 w-5 shrink-0" />
+          )}
+          <p>
+            {health.model_loaded
+              ? "A trained model is currently live — but that doesn't mean every dataset below has been used. Check the individual training run for details."
+              : "No trained model is currently live. None of the datasets below have completed training yet — predictions on /analyze are disabled until one does."}
+          </p>
+        </div>
+      )}
 
       {loading ? (
         <div className="grid place-items-center p-10 text-slate-500">
@@ -65,11 +89,14 @@ export default function DatasetsPage() {
                 <span>{d.approx_images} images</span>
                 <span className="flex items-center gap-1">
                   {d.roi_support ? (
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    <>
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> ROI support
+                    </>
                   ) : (
-                    <XCircle className="h-3.5 w-3.5 text-slate-400" />
+                    <>
+                      <XCircle className="h-3.5 w-3.5 text-slate-400" /> No ROI data
+                    </>
                   )}
-                  ROI support
                 </span>
               </div>
               {d.notes && <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">{d.notes}</p>}
