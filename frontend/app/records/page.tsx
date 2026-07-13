@@ -40,7 +40,7 @@ export default function RecordsPage() {
           <Loader2 className="h-5 w-5 animate-spin" />
         </div>
       ) : error ? (
-        <p className="text-sm text-red-400">{error}</p>
+        <p className="text-sm text-bad">{error}</p>
       ) : studies.length === 0 ? (
         <div className="card p-8 text-center">
           <p className="text-sm font-medium text-ink">No analyzed records yet.</p>
@@ -51,10 +51,9 @@ export default function RecordsPage() {
             </Link>{" "}
             page and it will appear here.
           </p>
-          <p className="mx-auto mt-4 max-w-md rounded-lg border note-warn p-3 text-xs">
-            Note: the demo backend runs on a free tier with temporary storage —
-            records reset when the server restarts or after it sleeps (~15 min
-            idle). Persistent storage is a configuration upgrade.
+          <p className="mx-auto mt-4 max-w-md rounded-lg bg-surface p-3 text-xs text-ink-4">
+            Records and every pipeline image are stored persistently in the
+            database — they survive server restarts and redeploys.
           </p>
         </div>
       ) : (
