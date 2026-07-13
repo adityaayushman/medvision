@@ -13,9 +13,9 @@ const ACCESS_LABEL: Record<DatasetSpec["access"], string> = {
 };
 
 const ACCESS_STYLE: Record<DatasetSpec["access"], string> = {
-  open: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
-  kaggle: "bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
-  credentialed: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  open: "bg-emerald-900/30 text-emerald-300",
+  kaggle: "bg-sky-900/30 text-sky-300",
+  credentialed: "bg-amber-900/30 text-amber-300",
 };
 
 export default function DatasetsPage() {
@@ -35,11 +35,11 @@ export default function DatasetsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <Database className="h-5 w-5 text-brand-600" />
+        <Database className="h-5 w-5 text-brand-400" />
         <h1 className="text-2xl font-bold">Training data</h1>
       </div>
-      <p className="max-w-2xl text-sm text-slate-600 dark:text-slate-400">
-        This is a <strong>catalog of candidate datasets</strong> the platform's
+      <p className="max-w-2xl text-sm text-slate-400">
+        This is a <strong className="text-slate-200">catalog of candidate datasets</strong> the platform's
         training pipeline can target — not a record of what has already been
         trained. Version 1 targets chest X-ray, pairing a classification
         dataset with a lung-segmentation dataset for anatomical ROI extraction.
@@ -50,8 +50,8 @@ export default function DatasetsPage() {
           className={cn(
             "flex items-start gap-3 rounded-xl p-3 text-sm",
             health.model_loaded
-              ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
-              : "bg-amber-50 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+              ? "bg-emerald-900/30 text-emerald-300"
+              : "bg-amber-900/30 text-amber-300",
           )}
         >
           {health.model_loaded ? (
@@ -61,8 +61,8 @@ export default function DatasetsPage() {
           )}
           <p>
             {health.model_loaded
-              ? "A trained model is currently live — but that doesn't mean every dataset below has been used. Check the individual training run for details."
-              : "No trained model is currently live. None of the datasets below have completed training yet — predictions on /analyze are disabled until one does."}
+              ? "A trained model is currently live — but that doesn't mean every dataset below has been used. Check the Evaluation page for the training run."
+              : "No trained model is currently live. None of the datasets below have completed training yet."}
           </p>
         </div>
       )}
@@ -72,7 +72,7 @@ export default function DatasetsPage() {
           <Loader2 className="h-5 w-5 animate-spin" />
         </div>
       ) : error ? (
-        <p className="text-sm text-red-600">{error}</p>
+        <p className="text-sm text-red-400">{error}</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {datasets.map((d) => (
@@ -94,22 +94,22 @@ export default function DatasetsPage() {
                     </>
                   ) : (
                     <>
-                      <XCircle className="h-3.5 w-3.5 text-slate-400" /> No ROI data
+                      <XCircle className="h-3.5 w-3.5 text-slate-500" /> No ROI data
                     </>
                   )}
                 </span>
               </div>
-              {d.notes && <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">{d.notes}</p>}
+              {d.notes && <p className="mb-3 text-sm text-slate-400">{d.notes}</p>}
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap gap-1">
                   {d.recommended_for.map((tag) => (
-                    <span key={tag} className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                    <span key={tag} className="inline-flex items-center gap-1 rounded-md bg-white/[0.05] px-2 py-0.5 text-[11px] text-slate-300">
                       <Star className="h-2.5 w-2.5" /> {tag}
                     </span>
                   ))}
                 </div>
                 <a href={d.url} target="_blank" rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline">
+                  className="inline-flex items-center gap-1 text-xs font-medium text-brand-400 hover:underline">
                   Source <ExternalLink className="h-3 w-3" />
                 </a>
               </div>

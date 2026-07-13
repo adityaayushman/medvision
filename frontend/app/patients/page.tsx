@@ -77,9 +77,9 @@ export default function PatientsPage() {
           Add patient
         </button>
       </form>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-400">{error}</p>}
 
-      <div className="card divide-y divide-slate-100 dark:divide-slate-800">
+      <div className="card divide-y divide-white/[0.06]">
         {loading ? (
           <div className="grid place-items-center p-10 text-slate-500">
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -89,14 +89,14 @@ export default function PatientsPage() {
         ) : (
           patients.map((p) => (
             <Link key={p.id} href={`/patients/${p.id}`}
-              className="flex items-center justify-between p-4 transition hover:bg-slate-50 dark:hover:bg-slate-800/50">
+              className="flex items-center justify-between p-4 transition hover:bg-white/[0.03]">
               <div>
                 <p className="font-medium">{p.name}</p>
                 <p className="text-xs text-slate-500">
                   {[p.sex, p.birth_year].filter(Boolean).join(" · ") || "—"}
                 </p>
               </div>
-              <ChevronRight className="h-4 w-4 text-slate-400" />
+              <ChevronRight className="h-4 w-4 text-slate-500" />
             </Link>
           ))
         )}

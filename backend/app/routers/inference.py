@@ -37,21 +37,34 @@ async def analyze(
     session: Session = Depends(get_session),
 ) -> AnalyzeResponse:
     image = _decode(await file.read())
-    payload, annotated, overlay = analyzer.analyze(image)
+    payload, result, overlay = analyzer.analyze(image)
 
-    # persist images to static storage
+    # persist the original + every DIP stage so the UI can show the full pipeline
     uid = uuid.uuid4().hex[:12]
+    ov = settings.storage_dir / "overlays"
     upload_path = settings.storage_dir / "uploads" / f"{uid}.png"
-    annotated_path = settings.storage_dir / "overlays" / f"{uid}_annotated.png"
-    cv2.imwrite(str(upload_path), image)
-    cv2.imwrite(str(annotated_path), annotated)
+    enhanced_path = ov / f"{uid}_enhanced.png"
+    seg_path = ov / f"{uid}_segmentation.png"
+    annotated_path = ov / f"{uid}_annotated.png"
+    cv2.imwrite(str(upload_path), result.original)
+    cv2.imwrite(str(enhanced_path), result.enhanced)
+    cv2.imwrite(str(seg_path), result.cleaned_mask)
+    cv2.imwrite(str(annotated_path), result.annotated)
+
+    stages = [
+        {"name": "Original", "url": f"/static/uploads/{upload_path.name}"},
+        {"name": "Enhanced (CLAHE)", "url": f"/static/overlays/{enhanced_path.name}"},
+        {"name": "Segmentation", "url": f"/static/overlays/{seg_path.name}"},
+        {"name": "ROIs", "url": f"/static/overlays/{annotated_path.name}"},
+    ]
 
     heatmap_url = None
     heatmap_path = None
     if overlay is not None:
-        heatmap_path = settings.storage_dir / "overlays" / f"{uid}_gradcam.png"
+        heatmap_path = ov / f"{uid}_gradcam.png"
         cv2.imwrite(str(heatmap_path), overlay)
         heatmap_url = f"/static/overlays/{heatmap_path.name}"
+        stages.append({"name": "Grad-CAM", "url": heatmap_url})
 
     # persist the Study (+ Prediction) — the longitudinal record
     study = Study(
@@ -89,4 +102,5 @@ async def analyze(
         image_url=f"/static/uploads/{upload_path.name}",
         annotated_url=f"/static/overlays/{annotated_path.name}",
         heatmap_url=heatmap_url,
+        stages=stages,
     )

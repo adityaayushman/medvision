@@ -65,6 +65,9 @@ def test_analyze_and_timeline(client):
     assert body["prediction"] is None          # no model loaded
     assert body["image_url"].startswith("/static/")
     assert body["study_id"] is not None
+    # the full DIP pipeline gallery is returned (no model -> no Grad-CAM stage)
+    stage_names = [s["name"] for s in body["stages"]]
+    assert stage_names == ["Original", "Enhanced (CLAHE)", "Segmentation", "ROIs"]
 
     # the study shows up on the patient's timeline
     r = client.get(f"/api/patients/{patient_id}/timeline")

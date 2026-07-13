@@ -30,6 +30,7 @@ export interface AnalyzeResponse {
   image_url: string;
   annotated_url: string;
   heatmap_url?: string | null;
+  stages?: { name: string; url: string }[];
 }
 
 export interface Patient {
