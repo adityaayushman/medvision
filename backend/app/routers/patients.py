@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
-from ..config import settings
 from ..db import get_session
-from ..models_db import Patient, Prediction, Study
+from ..models_db import Patient, Prediction, Study, StudyImage
 from ..schemas import PatientCreate, PatientRead, PredictionRead, StudyRead
 
 router = APIRouter(prefix="/api/patients", tags=["patients"])
@@ -40,16 +38,23 @@ def get_patient(patient_id: int, session: Session = Depends(get_session)) -> Pat
 
 
 def _study_to_read(study: Study, session: Session) -> StudyRead:
+    imgs = {
+        i.name: i.id
+        for i in session.exec(select(StudyImage).where(StudyImage.study_id == study.id)).all()
+    }
+
+    def url(name: str):
+        return f"/api/image/{imgs[name]}" if name in imgs else None
+
     pred = session.exec(select(Prediction).where(Prediction.study_id == study.id)).first()
     prediction = None
     if pred:
-        heatmap_url = f"/static/overlays/{Path(pred.heatmap_path).name}" if pred.heatmap_path else None
         prediction = PredictionRead(
             label=pred.label,
             confidence=pred.confidence,
             probabilities=json.loads(pred.probabilities),
             backbone=pred.backbone,
-            heatmap_url=heatmap_url,
+            heatmap_url=url("gradcam"),
         )
     return StudyRead(
         id=study.id,
@@ -58,7 +63,8 @@ def _study_to_read(study: Study, session: Session) -> StudyRead:
         uploaded_at=study.uploaded_at,
         quality_passed=study.quality_passed,
         num_rois=study.num_rois,
-        image_url=f"/static/uploads/{Path(study.image_path).name}",
+        image_url=url("original") or url("rois") or "",
+        annotated_url=url("rois"),
         prediction=prediction,
     )
 

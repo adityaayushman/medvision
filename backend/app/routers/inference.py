@@ -1,11 +1,13 @@
-"""/api/analyze — upload a scan, run the pipeline (+model), persist a Study."""
+"""/api/analyze — upload a scan, run the pipeline (+model), persist a Study.
+
+Images (original + every DIP stage + Grad-CAM) are stored in the database as
+bytes, not on disk, so records and their images survive on hosts with an
+ephemeral filesystem (e.g. Render free tier). They are served by /api/image/{id}.
+"""
 
 from __future__ import annotations
 
 import json
-import uuid
-from datetime import datetime
-from pathlib import Path
 from typing import Optional
 
 import cv2
@@ -13,13 +15,20 @@ import numpy as np
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlmodel import Session
 
-from ..config import settings
 from ..db import get_session
 from ..ml import AnalyzerService, get_analyzer
-from ..models_db import Prediction, Study
+from ..models_db import Prediction, Study, StudyImage
 from ..schemas import AnalyzeResponse
 
 router = APIRouter(prefix="/api", tags=["inference"])
+
+STAGE_LABELS = {
+    "original": "Original",
+    "enhanced": "Enhanced (CLAHE)",
+    "segmentation": "Segmentation",
+    "rois": "ROIs",
+    "gradcam": "Grad-CAM",
+}
 
 
 def _decode(data: bytes) -> np.ndarray:
@@ -27,6 +36,13 @@ def _decode(data: bytes) -> np.ndarray:
     if image is None:
         raise HTTPException(status_code=400, detail="Could not decode image file.")
     return image
+
+
+def _png(img: np.ndarray) -> bytes:
+    ok, buf = cv2.imencode(".png", img)
+    if not ok:
+        raise HTTPException(status_code=500, detail="Failed to encode image.")
+    return buf.tobytes()
 
 
 @router.post("/analyze", response_model=AnalyzeResponse)
@@ -39,38 +55,11 @@ async def analyze(
     image = _decode(await file.read())
     payload, result, overlay = analyzer.analyze(image)
 
-    # persist the original + every DIP stage so the UI can show the full pipeline
-    uid = uuid.uuid4().hex[:12]
-    ov = settings.storage_dir / "overlays"
-    upload_path = settings.storage_dir / "uploads" / f"{uid}.png"
-    enhanced_path = ov / f"{uid}_enhanced.png"
-    seg_path = ov / f"{uid}_segmentation.png"
-    annotated_path = ov / f"{uid}_annotated.png"
-    cv2.imwrite(str(upload_path), result.original)
-    cv2.imwrite(str(enhanced_path), result.enhanced)
-    cv2.imwrite(str(seg_path), result.cleaned_mask)
-    cv2.imwrite(str(annotated_path), result.annotated)
-
-    stages = [
-        {"name": "Original", "url": f"/static/uploads/{upload_path.name}"},
-        {"name": "Enhanced (CLAHE)", "url": f"/static/overlays/{enhanced_path.name}"},
-        {"name": "Segmentation", "url": f"/static/overlays/{seg_path.name}"},
-        {"name": "ROIs", "url": f"/static/overlays/{annotated_path.name}"},
-    ]
-
-    heatmap_url = None
-    heatmap_path = None
-    if overlay is not None:
-        heatmap_path = ov / f"{uid}_gradcam.png"
-        cv2.imwrite(str(heatmap_path), overlay)
-        heatmap_url = f"/static/overlays/{heatmap_path.name}"
-        stages.append({"name": "Grad-CAM", "url": heatmap_url})
-
-    # persist the Study (+ Prediction) — the longitudinal record
+    # persist the Study first (its id is the FK for the images)
     study = Study(
         patient_id=patient_id,
         modality=payload["modality"],
-        image_path=str(upload_path),
+        image_path="",  # images live in the DB now
         quality_passed=payload["quality"]["passed"],
         quality_reasons=";".join(payload["quality"]["reasons"]),
         num_rois=payload["num_rois"],
@@ -78,6 +67,30 @@ async def analyze(
     session.add(study)
     session.commit()
     session.refresh(study)
+
+    # store the original + each DIP stage (+ Grad-CAM) as image rows
+    stage_arrays = [
+        ("original", result.original),
+        ("enhanced", result.enhanced),
+        ("segmentation", result.cleaned_mask),
+        ("rois", result.annotated),
+    ]
+    if overlay is not None:
+        stage_arrays.append(("gradcam", overlay))
+
+    ids: dict[str, int] = {}
+    for name, arr in stage_arrays:
+        si = StudyImage(study_id=study.id, name=name, data=_png(arr))
+        session.add(si)
+        session.commit()
+        session.refresh(si)
+        ids[name] = si.id
+
+    def url(name: str) -> Optional[str]:
+        return f"/api/image/{ids[name]}" if name in ids else None
+
+    stages = [{"name": STAGE_LABELS[name], "url": url(name)} for name, _ in stage_arrays]
+    heatmap_url = url("gradcam")
 
     pred = payload.get("prediction")
     if pred:
@@ -87,7 +100,7 @@ async def analyze(
             confidence=pred["confidence"],
             probabilities=json.dumps(pred["probabilities"]),
             backbone=pred.get("backbone", ""),
-            heatmap_path=str(heatmap_path) if heatmap_path else None,
+            heatmap_path=heatmap_url,  # stores the /api/image URL
         ))
         session.commit()
 
@@ -99,8 +112,8 @@ async def analyze(
         num_rois=payload["num_rois"],
         rois=payload["rois"],
         prediction=pred,
-        image_url=f"/static/uploads/{upload_path.name}",
-        annotated_url=f"/static/overlays/{annotated_path.name}",
+        image_url=url("original") or "",
+        annotated_url=url("rois") or "",
         heatmap_url=heatmap_url,
         stages=stages,
     )
