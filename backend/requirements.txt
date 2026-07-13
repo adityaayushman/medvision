@@ -1,0 +1,7 @@
+# MedChron backend deps (installed into the same D: venv as the ML core).
+# The ML core (medchron, torch, opencv, numpy) is installed separately via ml/pyproject.toml.
+fastapi>=0.110
+uvicorn[standard]>=0.29
+sqlmodel>=0.0.16
+python-multipart>=0.0.9
+pydantic>=2.6

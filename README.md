@@ -93,6 +93,23 @@ Windows CUDA is a **PyTorch** capability. So when we build training, pick one:
 The imaging core above has **no deep-learning dependency**, so this choice is
 deferred with zero cost.
 
+### ⚠️ Verified constraint on THIS machine (RTX 4050, 6 GB, shared with display)
+
+VGG16 training **fails on the local GPU** here — it OOMs unable to allocate even
+26 MiB, because the 6 GB is largely consumed by the display + open apps
+(browsers, editors, chat apps), and Windows/WDDM doesn't support PyTorch's
+`expandable_segments` fragmentation fix. The full pipeline (train → evaluate →
+Grad-CAM) is **verified working on CPU** with a two-phase transfer-learning run.
+For real training on this laptop you have three good options:
+
+1. **Close GPU-heavy apps** (especially browsers), then use a lighter backbone
+   (`--backbone efficientnet_b0`) and small batch — EfficientNet is smaller *and*
+   more accurate than VGG16.
+2. **Train on CPU** (`--device cpu`) — fine for small runs, slow for big data.
+3. **Google Colab** free GPU for the heavy VGG16 runs.
+
+Every training/eval/explain script takes `--device {auto,cpu,cuda}`.
+
 ## License
 
 Apache-2.0 (see `pyproject.toml`).
