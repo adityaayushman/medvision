@@ -119,6 +119,7 @@ def evaluate_checkpoint(
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
 
     mcfg = ModelConfig(**ckpt["model_config"])
+    mcfg.pretrained = False  # weights come from the checkpoint
     model = create_model(mcfg).to(device)
     model.load_state_dict(ckpt["state_dict"])
 

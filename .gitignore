@@ -37,6 +37,7 @@ node_modules/
 .next/
 out/
 .vercel/
+.npmcache/
 
 # ---- Secrets & env ----
 .env

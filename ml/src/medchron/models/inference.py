@@ -30,6 +30,7 @@ class Predictor:
         ckpt = torch.load(ckpt_path, map_location=self.device, weights_only=False)
 
         self.model_config = ModelConfig(**ckpt["model_config"])
+        self.model_config.pretrained = False  # weights come from the checkpoint, not ImageNet
         self.model = create_model(self.model_config).to(self.device)
         self.model.load_state_dict(ckpt["state_dict"])
         self.model.eval()

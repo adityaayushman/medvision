@@ -72,13 +72,32 @@ tensor = pipe.model_input(result)      # 224x224x3 float32, ready for a backbone
 | Layer | State |
 |-------|-------|
 | DIP pipeline (quality → enhance → segment → ROI) | ✅ done, tested |
-| Dataset layer (registry, manifest, splits) | ⏳ next |
-| Model (VGG16 transfer learning + fine-tuning) | ⏳ planned |
-| Evaluation (metrics, ROC/AUC, confusion matrix) | ⏳ planned |
-| Explainability (Grad-CAM) | ⏳ planned |
-| Backend (FastAPI + patient records) | ⏳ planned |
-| Frontend (Next.js dashboard + timeline) | ⏳ planned |
+| Dataset layer (registry, manifest, leak-safe splits) | ✅ done, tested |
+| Model (VGG16 baseline + swappable; 2-phase transfer learning) | ✅ done, tested |
+| Evaluation (metrics, ROC/AUC, confusion matrix) | ✅ done |
+| Explainability (Grad-CAM) | ✅ done, verified |
+| Backend (FastAPI + patient records + timeline) | ✅ done, tested |
+| Frontend (Next.js dashboard + timeline) | ✅ builds; runtime-verified via API |
+| Real dataset training (RSNA) | ⏳ needs Kaggle creds — see docs/KAGGLE_SETUP.md |
 | Mobile app | ⏳ planned |
+
+## Run the full stack
+
+```bash
+# 1) Backend (from repo root, D: venv active)
+.venv/Scripts/python -m pip install -r backend/requirements.txt
+cd backend && uvicorn app.main:app --reload          # :8000, /docs
+
+# 2) Frontend (new terminal)
+cd frontend && npm install && npm run dev             # :3000
+
+# 3) Train a model so /analyze returns predictions (else preprocess-only)
+python ml/scripts/train.py --root ml/data/<dataset> --backbone efficientnet_b0 --device cpu
+```
+
+18 automated tests pass (15 ML + 3 backend). The end-to-end path
+(upload → preprocess → classify → Grad-CAM → patient timeline) is verified
+against the running API.
 
 ## GPU on Windows — read before building the model layer
 
