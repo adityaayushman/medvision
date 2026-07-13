@@ -80,6 +80,19 @@ def test_analyze_rejects_non_image(client):
     assert r.status_code == 400
 
 
+def test_studies_lists_all_analyzed(client):
+    # an analyzed scan (no patient attached) must still show up in /api/studies
+    files = {"file": ("scan.png", _png_bytes(), "image/png")}
+    r = client.post("/api/analyze", files=files)
+    assert r.status_code == 200
+    study_id = r.json()["study_id"]
+
+    r = client.get("/api/studies")
+    assert r.status_code == 200
+    studies = r.json()
+    assert any(s["id"] == study_id for s in studies)
+
+
 def test_datasets_registry(client):
     r = client.get("/api/datasets")
     assert r.status_code == 200
