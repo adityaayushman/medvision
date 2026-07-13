@@ -26,7 +26,7 @@ from .dataset import build_dataloaders
 
 @torch.no_grad()
 def collect_predictions(model: torch.nn.Module, loader: DataLoader, device: torch.device):
-    """Return (y_true, y_pred, y_prob) over a loader."""
+    """Return (y_true, y_pred, y_prob) over a loader (multiclass)."""
     model.eval()
     ys, preds, probs = [], [], []
     for inputs, targets in loader:
@@ -37,6 +37,19 @@ def collect_predictions(model: torch.nn.Module, loader: DataLoader, device: torc
         preds.append(p.argmax(1))
         ys.append(targets.numpy())
     return (np.concatenate(ys), np.concatenate(preds), np.concatenate(probs))
+
+
+@torch.no_grad()
+def collect_predictions_multilabel(model: torch.nn.Module, loader: DataLoader, device: torch.device):
+    """Return (y_true, y_prob) over a loader — y_true is multi-hot, y_prob is per-class sigmoid."""
+    model.eval()
+    ys, probs = [], []
+    for inputs, targets in loader:
+        inputs = inputs.to(device)
+        logits = model(inputs)
+        probs.append(torch.sigmoid(logits).cpu().numpy())
+        ys.append(targets.numpy())
+    return np.concatenate(ys), np.concatenate(probs)
 
 
 def compute_metrics(y_true, y_pred, y_prob, class_names: Sequence[str]) -> Dict:
@@ -71,6 +84,46 @@ def compute_metrics(y_true, y_pred, y_prob, class_names: Sequence[str]) -> Dict:
             for i in range(n_classes)
         },
         "confusion_matrix": confusion_matrix(y_true, y_pred, labels=list(range(n_classes))).tolist(),
+    }
+
+
+def compute_multilabel_metrics(
+    y_true: np.ndarray, y_prob: np.ndarray, class_names: Sequence[str], threshold: float = 0.5
+) -> Dict:
+    """Per-class precision/recall/F1/AUC, mean AUC, exact-match and Hamming accuracy.
+
+    Accuracy is not a meaningful single number for multi-label — "exact match"
+    (every finding correct) is a harsh lower bound, "Hamming" (per-label
+    correctness) is more forgiving; both are reported alongside per-class AUC,
+    which is the standard NIH ChestX-ray14 benchmark metric.
+    """
+    y_true_int = y_true.astype(int)
+    y_pred = (y_prob >= threshold).astype(int)
+
+    per_class: Dict[str, Dict] = {}
+    aucs = []
+    for i, name in enumerate(class_names):
+        yt, yp, ypr = y_true_int[:, i], y_pred[:, i], y_prob[:, i]
+        p, r, f1, _ = precision_recall_fscore_support(
+            yt, yp, average="binary", zero_division=0
+        )
+        try:
+            auc = roc_auc_score(yt, ypr) if len(set(yt)) > 1 else float("nan")
+        except ValueError:
+            auc = float("nan")
+        if not np.isnan(auc):
+            aucs.append(auc)
+        per_class[name] = {
+            "precision": float(p), "recall": float(r), "f1": float(f1),
+            "support": int(yt.sum()), "auc": float(auc),
+        }
+
+    return {
+        "mean_auc": float(np.mean(aucs)) if aucs else float("nan"),
+        "exact_match_accuracy": float((y_pred == y_true_int).all(axis=1).mean()),
+        "hamming_accuracy": float((y_pred == y_true_int).mean()),
+        "threshold": threshold,
+        "per_class": per_class,
     }
 
 
@@ -126,16 +179,28 @@ def evaluate_checkpoint(
     class_to_idx = ckpt["class_to_idx"]
     class_names = [name for name, _ in sorted(class_to_idx.items(), key=lambda kv: kv[1])]
     preprocess = PreprocessConfig(**ckpt.get("preprocess", {}))
+    task = ckpt.get("task", "multiclass")
+    label_delim = ckpt.get("train_config", {}).get("label_delim", "|")
 
-    bundle = build_dataloaders(samples, preprocess=preprocess, batch_size=batch_size)
+    bundle = build_dataloaders(
+        samples, preprocess=preprocess, batch_size=batch_size, task=task, label_delim=label_delim
+    )
     if split not in bundle.loaders:
         raise ValueError(f"No '{split}' samples to evaluate.")
 
-    y_true, y_pred, y_prob = collect_predictions(model, bundle.loaders[split], device)
-    metrics = compute_metrics(y_true, y_pred, y_prob, class_names)
-
     out = Path(out_dir or Path(ckpt_path).parent)
     out.mkdir(parents=True, exist_ok=True)
+
+    if task == "multilabel":
+        y_true, y_prob = collect_predictions_multilabel(model, bundle.loaders[split], device)
+        metrics = compute_multilabel_metrics(y_true, y_prob, class_names)
+        (out / "metrics.json").write_text(json.dumps(metrics, indent=2))
+        print(json.dumps({k: v for k, v in metrics.items() if k != "per_class"}, indent=2))
+        print(f"Saved metrics -> {out}")
+        return metrics
+
+    y_true, y_pred, y_prob = collect_predictions(model, bundle.loaders[split], device)
+    metrics = compute_metrics(y_true, y_pred, y_prob, class_names)
     (out / "metrics.json").write_text(json.dumps(metrics, indent=2))
     _save_plots(y_true, y_prob, np.array(metrics["confusion_matrix"]), class_names, out)
 

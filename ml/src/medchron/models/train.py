@@ -20,7 +20,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from ..config import PreprocessConfig
-from ..data.manifest import Sample
+from ..data.manifest import LABEL_DELIM, Sample
 from .backbone import (
     ModelConfig,
     create_model,
@@ -28,12 +28,14 @@ from .backbone import (
     trainable_parameter_count,
     unfreeze_top_fraction,
 )
-from .dataset import build_dataloaders
+from .dataset import Task, build_dataloaders
 
 
 @dataclass
 class TrainConfig:
     backbone: str = "vgg16"
+    task: Task = "multiclass"     # "multiclass" (one label/image) or "multilabel" (several)
+    label_delim: str = LABEL_DELIM
     epochs_head: int = 5
     epochs_finetune: int = 10
     lr_head: float = 1e-3
@@ -72,15 +74,21 @@ def _run_epoch(
     loader: DataLoader,
     criterion: nn.Module,
     device: torch.device,
+    task: Task = "multiclass",
     optimizer: Optional[torch.optim.Optimizer] = None,
     scaler: Optional["torch.cuda.amp.GradScaler"] = None,
 ) -> tuple[float, float]:
-    """One pass over ``loader``. Trains if ``optimizer`` is given, else evaluates."""
+    """One pass over ``loader``. Trains if ``optimizer`` is given, else evaluates.
+
+    The returned "accuracy" is a training-loop monitoring signal, not the final
+    metric: argmax match for multiclass, mean per-label match (0.5 threshold)
+    for multilabel. Real evaluation (per-class AUC etc.) lives in evaluate.py.
+    """
     training = optimizer is not None
     model.train(training)
     use_amp = scaler is not None and device.type == "cuda"
 
-    total_loss, correct, seen = 0.0, 0, 0
+    total_loss, correct, seen = 0.0, 0.0, 0
     with torch.set_grad_enabled(training):
         for inputs, targets in loader:
             inputs, targets = inputs.to(device), targets.to(device)
@@ -99,7 +107,11 @@ def _run_epoch(
                     optimizer.step()
 
             total_loss += loss.item() * inputs.size(0)
-            correct += (outputs.argmax(1) == targets).sum().item()
+            if task == "multilabel":
+                preds = (torch.sigmoid(outputs) > 0.5).float()
+                correct += (preds == targets).float().mean(dim=1).sum().item()
+            else:
+                correct += (outputs.argmax(1) == targets).sum().item()
             seen += inputs.size(0)
 
     return total_loss / max(seen, 1), correct / max(seen, 1)
@@ -133,6 +145,7 @@ def _train_phase(
     epochs: int,
     patience: int,
     scaler,
+    task: Task = "multiclass",
     scheduler=None,
     history: Optional[List[dict]] = None,
 ) -> List[dict]:
@@ -141,9 +154,9 @@ def _train_phase(
     has_val = "val" in loaders
 
     for epoch in range(1, epochs + 1):
-        tr_loss, tr_acc = _run_epoch(model, loaders["train"], criterion, device, optimizer, scaler)
+        tr_loss, tr_acc = _run_epoch(model, loaders["train"], criterion, device, task, optimizer, scaler)
         if has_val:
-            va_loss, va_acc = _run_epoch(model, loaders["val"], criterion, device)
+            va_loss, va_acc = _run_epoch(model, loaders["val"], criterion, device, task)
         else:
             va_loss, va_acc = tr_loss, tr_acc
         if scheduler is not None:
@@ -184,17 +197,22 @@ def train(
 
     device = resolve_device(tcfg.device)
     bundle = build_dataloaders(
-        samples, preprocess=preprocess, batch_size=tcfg.batch_size, num_workers=tcfg.num_workers
+        samples, preprocess=preprocess, batch_size=tcfg.batch_size, num_workers=tcfg.num_workers,
+        task=tcfg.task, label_delim=tcfg.label_delim,
     )
     if "train" not in bundle.loaders:
         raise ValueError("No training samples found (check the manifest's 'split' column).")
 
     mcfg = ModelConfig(backbone=tcfg.backbone, num_classes=len(bundle.class_to_idx))
     model = create_model(mcfg).to(device)
-    criterion = nn.CrossEntropyLoss(weight=bundle.class_weights.to(device))
+    if tcfg.task == "multilabel":
+        criterion: nn.Module = nn.BCEWithLogitsLoss(pos_weight=bundle.class_weights.to(device))
+    else:
+        criterion = nn.CrossEntropyLoss(weight=bundle.class_weights.to(device))
     scaler = torch.amp.GradScaler("cuda", enabled=tcfg.amp and device.type == "cuda")
 
-    print(f"Device: {device} | backbone: {tcfg.backbone} | classes: {bundle.class_to_idx}")
+    print(f"Device: {device} | backbone: {tcfg.backbone} | task: {tcfg.task} | "
+          f"classes: {bundle.class_to_idx}")
 
     history: List[dict] = []
 
@@ -206,7 +224,7 @@ def train(
         lr=tcfg.lr_head, weight_decay=tcfg.weight_decay,
     )
     _train_phase("head", model, bundle.loaders, criterion, opt1, device,
-                 tcfg.epochs_head, tcfg.patience, scaler, history=history)
+                 tcfg.epochs_head, tcfg.patience, scaler, task=tcfg.task, history=history)
 
     # ---- Phase 2: fine-tuning (unfreeze top) ----
     unfreeze_top_fraction(model, tcfg.finetune_fraction)
@@ -217,7 +235,8 @@ def train(
     )
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt2, mode="min", factor=0.5, patience=2)
     _train_phase("finetune", model, bundle.loaders, criterion, opt2, device,
-                 tcfg.epochs_finetune, tcfg.patience, scaler, scheduler, history=history)
+                 tcfg.epochs_finetune, tcfg.patience, scaler, task=tcfg.task,
+                 scheduler=scheduler, history=history)
 
     # ---- Persist ----
     out_dir = Path(tcfg.out_dir)
@@ -229,6 +248,7 @@ def train(
             "class_to_idx": bundle.class_to_idx,
             "model_config": asdict(mcfg),
             "train_config": asdict(tcfg),
+            "task": tcfg.task,
             "preprocess": preprocess.to_dict(),
             "history": history,
         },
