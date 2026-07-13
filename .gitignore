@@ -9,10 +9,12 @@ dist/
 .ruff_cache/
 .ipynb_checkpoints/
 
-# ---- Virtual envs ----
+# ---- Virtual envs & local scratch ----
 .venv/
 venv/
 env/
+.tmp/
+.pipcache/
 
 # ---- Data & model artifacts (large, never commit) ----
 ml/data/**
@@ -25,6 +27,10 @@ ml/artifacts/**
 *.pth
 *.onnx
 *.tfrecord
+
+# ---- Backend runtime ----
+*.db
+backend/storage/
 
 # ---- Node / Next.js ----
 node_modules/

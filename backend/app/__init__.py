@@ -1,0 +1,1 @@
+"""MedChron AI FastAPI backend."""

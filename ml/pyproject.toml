@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "medchron"
 version = "0.1.0"
 description = "MedChron AI — medical imaging intelligence platform (ML core)"
-readme = "../README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Aditya Sahoo" }]
@@ -28,7 +27,10 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = '-q -m "not heavy"'
+markers = [
+    "heavy: memory/time-intensive tests (e.g. full VGG16); deselected by default",
+]
 
 [tool.ruff]
 line-length = 100

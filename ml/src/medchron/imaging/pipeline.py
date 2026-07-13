@@ -119,3 +119,18 @@ class MedicalImagePipeline:
         )
         rgb = cv2.cvtColor(resized, cv2.COLOR_GRAY2RGB)
         return rgb.astype(np.float32)
+
+
+def model_image(image: np.ndarray, cfg: PreprocessConfig) -> np.ndarray:
+    """Fast enhancement-only path to a model-ready ``HxWx3`` uint8 RGB image.
+
+    Used by the training data loader, where running full segmentation + contour
+    extraction per sample would be wasteful. It still applies the DIP enhancement
+    (denoise + CLAHE) that distinguishes MedChron from a raw-pixel classifier —
+    it simply skips the segmentation/ROI stages the classifier doesn't consume.
+    """
+    gray = to_grayscale(image)
+    denoised = denoise(gray, cfg)
+    enhanced = enhance_contrast(denoised, cfg)
+    small = cv2.resize(enhanced, cfg.model_input_size, interpolation=cv2.INTER_AREA)
+    return cv2.cvtColor(small, cv2.COLOR_GRAY2RGB)
