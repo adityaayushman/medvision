@@ -1,4 +1,5 @@
-"""Database engine + session helpers (SQLModel over SQLite)."""
+"""Database engine + session helpers (SQLModel over SQLite locally, Postgres in
+production via DATABASE_URL — e.g. a Supabase connection string)."""
 
 from __future__ import annotations
 
@@ -6,11 +7,21 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from .config import settings
 
-# check_same_thread=False lets FastAPI's threadpool share the SQLite connection
+# SQLAlchemy needs the `postgresql://` scheme; some providers hand out the
+# deprecated `postgres://`. Normalise it so a pasted Supabase URL just works.
+_url = settings.database_url
+if _url.startswith("postgres://"):
+    _url = _url.replace("postgres://", "postgresql://", 1)
+
+_is_sqlite = _url.startswith("sqlite")
+
+# SQLite needs check_same_thread=False; Postgres pooled connections benefit from
+# pre-ping (drops dead connections after the host sleeps/restarts).
 engine = create_engine(
-    settings.database_url,
+    _url,
     echo=False,
-    connect_args={"check_same_thread": False} if settings.database_url.startswith("sqlite") else {},
+    pool_pre_ping=not _is_sqlite,
+    connect_args={"check_same_thread": False} if _is_sqlite else {},
 )
 
 

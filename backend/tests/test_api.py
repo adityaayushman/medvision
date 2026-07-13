@@ -63,11 +63,18 @@ def test_analyze_and_timeline(client):
     body = r.json()
     assert "quality" in body and "num_rois" in body
     assert body["prediction"] is None          # no model loaded
-    assert body["image_url"].startswith("/static/")
+    assert body["image_url"].startswith("/api/image/")   # images stored in the DB
     assert body["study_id"] is not None
     # the full DIP pipeline gallery is returned (no model -> no Grad-CAM stage)
     stage_names = [s["name"] for s in body["stages"]]
     assert stage_names == ["Original", "Enhanced (CLAHE)", "Segmentation", "ROIs"]
+
+    # each stage image is actually retrievable from the DB
+    stage_url = body["stages"][0]["url"]
+    r = client.get(stage_url)
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/png"
+    assert len(r.content) > 100
 
     # the study shows up on the patient's timeline
     r = client.get(f"/api/patients/{patient_id}/timeline")

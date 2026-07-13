@@ -10,6 +10,7 @@ Relationship type hints and breaks SQLModel's forward-reference resolution.
 from datetime import datetime, timezone
 from typing import List, Optional
 
+from sqlalchemy import Column, LargeBinary
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -42,6 +43,17 @@ class Study(SQLModel, table=True):
 
     patient: Optional[Patient] = Relationship(back_populates="studies")
     prediction: Optional["Prediction"] = Relationship(back_populates="study")
+
+
+class StudyImage(SQLModel, table=True):
+    """A pipeline-stage image stored in the DB (bytes), so it survives restarts
+    on hosts with an ephemeral disk. Served via GET /api/image/{id}."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    study_id: Optional[int] = Field(default=None, foreign_key="study.id", index=True)
+    name: str = Field(index=True)  # original | enhanced | segmentation | rois | gradcam
+    data: bytes = Field(sa_column=Column(LargeBinary))
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class Prediction(SQLModel, table=True):
