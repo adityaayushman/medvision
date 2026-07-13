@@ -70,7 +70,7 @@ export default function Landing() {
         {/* 3D scene, right-anchored, fading into the card */}
         <div className="absolute inset-y-0 right-0 w-full sm:w-[62%]">
           <HeroCanvas />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0a0f1e] via-[#0a0f1e]/70 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-hero via-hero/70 to-transparent" />
         </div>
 
         <div className="relative px-6 py-14 sm:px-10 sm:py-20">
@@ -78,9 +78,9 @@ export default function Landing() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-medium text-slate-300 backdrop-blur"
+            className="mb-5 inline-flex items-center gap-2 rounded-full border border-line bg-surface-2 px-3 py-1 text-xs font-medium text-ink-2 backdrop-blur"
           >
-            <ShieldCheck className="h-3.5 w-3.5 text-brand-400" />
+            <ShieldCheck className="h-3.5 w-3.5 text-brand-600 dark:text-brand-400" />
             Research &amp; educational · not for clinical use
           </motion.div>
 
@@ -99,7 +99,7 @@ export default function Landing() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.12 }}
-            className="mt-5 max-w-xl text-base text-slate-300/90 sm:text-lg"
+            className="mt-5 max-w-xl text-base text-ink-2/90 sm:text-lg"
           >
             MedChron AI processes a medical image, extracts the clinically relevant
             region, classifies it with an explainable model, and files the result
@@ -125,12 +125,12 @@ export default function Landing() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="mt-8 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs backdrop-blur"
+            className="mt-8 inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-xs backdrop-blur"
           >
             <CircleDot
-              className={`h-3.5 w-3.5 ${health?.model_loaded ? "text-emerald-400" : "text-amber-400"}`}
+              className={`h-3.5 w-3.5 ${health?.model_loaded ? "text-ok" : "text-warn"}`}
             />
-            <span className="text-slate-300">
+            <span className="text-ink-2">
               {health === null
                 ? "Connecting to inference API…"
                 : health.model_loaded
@@ -153,10 +153,10 @@ export default function Landing() {
         >
           {PIPELINE.map((step, i) => (
             <motion.div key={step} variants={fadeUp} className="flex items-center gap-2">
-              <span className="rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2 text-sm font-medium text-slate-200 backdrop-blur">
+              <span className="rounded-xl border border-line bg-surface px-3.5 py-2 text-sm font-medium text-ink backdrop-blur">
                 {step}
               </span>
-              {i < PIPELINE.length - 1 && <ArrowRight className="h-4 w-4 text-slate-600" />}
+              {i < PIPELINE.length - 1 && <ArrowRight className="h-4 w-4 text-ink-5" />}
             </motion.div>
           ))}
         </motion.div>
@@ -174,11 +174,11 @@ export default function Landing() {
         >
           {FEATURES.map(({ icon: Icon, title, body }) => (
             <motion.div key={title} variants={fadeUp} className="card card-hover p-6">
-              <div className="mb-4 grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-brand-500/25 to-brand-700/10 text-brand-300 ring-1 ring-inset ring-white/10">
+              <div className="mb-4 grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-brand-500/25 to-brand-700/10 text-brand-600 dark:text-brand-300 ring-1 ring-inset ring-line">
                 <Icon className="h-5 w-5" />
               </div>
               <h3 className="text-lg font-semibold">{title}</h3>
-              <p className="mt-1.5 text-sm text-slate-400">{body}</p>
+              <p className="mt-1.5 text-sm text-ink-3">{body}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -195,7 +195,7 @@ export default function Landing() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_120%_at_50%_0%,rgba(47,143,255,0.18),transparent_60%)]" />
         <div className="relative">
           <h2 className="text-2xl font-bold sm:text-3xl">See the whole pipeline on one scan.</h2>
-          <p className="mx-auto mt-2 max-w-lg text-sm text-slate-400">
+          <p className="mx-auto mt-2 max-w-lg text-sm text-ink-3">
             Upload a chest X-ray and watch quality assessment, ROI extraction,
             classification and Grad-CAM run end to end.
           </p>
@@ -210,7 +210,7 @@ export default function Landing() {
 
 function SectionLabel({ icon: Icon, children }: { icon: any; children: React.ReactNode }) {
   return (
-    <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+    <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-ink-4">
       <Icon className="h-3.5 w-3.5" />
       {children}
     </div>

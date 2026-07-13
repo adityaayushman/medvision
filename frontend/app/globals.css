@@ -2,8 +2,118 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =====================  THEME TOKENS  =====================
+   :root = light theme, .dark = dark theme.
+   rgb triplets (no commas) feed Tailwind's <alpha-value>;
+   full rgba() values are consumed directly.               */
+
 :root {
+  color-scheme: light;
+
+  --c-page: 240 245 252;   /* soft blue-white */
+  --c-hero: 235 242 251;   /* hero fade colour (matches card) */
+  --c-ink1: 15 23 42;      /* strongest text  (slate-900) */
+  --c-ink2: 51 65 85;      /* body            (slate-700) */
+  --c-ink3: 71 85 105;     /* secondary       (slate-600) */
+  --c-ink4: 100 116 139;   /* muted           (slate-500) */
+  --c-ink5: 148 163 184;   /* faint           (slate-400) */
+  --c-ok: 4 120 87;        /* emerald-700 */
+  --c-warn: 161 98 7;      /* yellow-700 */
+  --c-bad: 190 18 60;      /* rose-700 */
+
+  --surface: rgba(255, 255, 255, 0.6);
+  --surface-2: rgba(255, 255, 255, 0.8);
+  --surface-3: rgba(255, 255, 255, 0.95);
+  --line: rgba(15, 40, 90, 0.12);
+  --line-2: rgba(15, 40, 90, 0.2);
+
+  --card-bg: rgba(255, 255, 255, 0.66);
+  --card-border: rgba(15, 40, 90, 0.1);
+  --card-inset: rgba(255, 255, 255, 0.85);
+  --card-shadow: rgba(23, 51, 107, 0.14);
+  --card-hover-border: rgba(22, 112, 245, 0.4);
+  --card-hover-ring: rgba(22, 112, 245, 0.12);
+
+  --input-bg: rgba(255, 255, 255, 0.75);
+  --ghost-bg: rgba(255, 255, 255, 0.55);
+  --ghost-bg-hover: rgba(255, 255, 255, 0.9);
+
+  /* charts */
+  --chart-ink: #475569;
+  --chart-ink-muted: #64748b;
+  --chart-grid: rgba(15, 23, 42, 0.08);
+  --chart-grid-strong: rgba(15, 23, 42, 0.24);
+  --chart-cell-ink: #334155;
+  --series-train: #2563eb; /* blue-600 — 4.72:1 on light surface */
+  --series-val: #b45309;   /* amber-700 — 4.58:1 on light surface */
+
+  /* status chips / notes */
+  --chip-ok-bg: rgba(16, 185, 129, 0.14);
+  --chip-ok-ink: #047857;
+  --chip-warn-bg: rgba(217, 119, 6, 0.13);
+  --chip-warn-ink: #92400e;
+  --note-warn-border: rgba(180, 83, 9, 0.28);
+  --note-warn-bg: rgba(217, 119, 6, 0.08);
+  --note-warn-ink: #92400e;
+
+  /* ambient background */
+  --aur-1: rgba(47, 143, 255, 0.14);
+  --aur-2: rgba(56, 189, 248, 0.12);
+  --aur-3: rgba(99, 102, 241, 0.1);
+  --grid-line: rgba(20, 60, 130, 0.055);
+}
+
+.dark {
   color-scheme: dark;
+
+  --c-page: 5 7 14;
+  --c-hero: 10 15 30;
+  --c-ink1: 241 245 249;   /* slate-100 */
+  --c-ink2: 203 213 225;   /* slate-300 */
+  --c-ink3: 148 163 184;   /* slate-400 */
+  --c-ink4: 100 116 139;   /* slate-500 */
+  --c-ink5: 71 85 105;     /* slate-600 */
+  --c-ok: 52 211 153;      /* emerald-400 */
+  --c-warn: 252 211 77;    /* amber-300 */
+  --c-bad: 251 113 133;    /* rose-400 */
+
+  --surface: rgba(255, 255, 255, 0.04);
+  --surface-2: rgba(255, 255, 255, 0.06);
+  --surface-3: rgba(255, 255, 255, 0.09);
+  --line: rgba(255, 255, 255, 0.1);
+  --line-2: rgba(255, 255, 255, 0.16);
+
+  --card-bg: rgba(255, 255, 255, 0.04);
+  --card-border: rgba(255, 255, 255, 0.1);
+  --card-inset: rgba(255, 255, 255, 0.06);
+  --card-shadow: rgba(0, 0, 0, 0.75);
+  --card-hover-border: rgba(120, 170, 255, 0.35);
+  --card-hover-ring: rgba(120, 170, 255, 0.1);
+
+  --input-bg: rgba(255, 255, 255, 0.04);
+  --ghost-bg: rgba(255, 255, 255, 0.03);
+  --ghost-bg-hover: rgba(255, 255, 255, 0.08);
+
+  --chart-ink: #94a3b8;
+  --chart-ink-muted: #64748b;
+  --chart-grid: rgba(255, 255, 255, 0.07);
+  --chart-grid-strong: rgba(255, 255, 255, 0.18);
+  --chart-cell-ink: #cbd5e1;
+  --series-train: #3b82f6; /* blue-500 — 5.47:1 on dark surface */
+  --series-val: #d97706;   /* amber-600 — 6.32:1 on dark surface */
+
+  --chip-ok-bg: rgba(6, 78, 59, 0.35);
+  --chip-ok-ink: #6ee7b7;
+  --chip-warn-bg: rgba(120, 53, 15, 0.35);
+  --chip-warn-ink: #fcd34d;
+  --note-warn-border: rgba(251, 191, 36, 0.2);
+  --note-warn-bg: rgba(251, 191, 36, 0.06);
+  --note-warn-ink: rgba(253, 230, 138, 0.9);
+
+  --aur-1: rgba(47, 143, 255, 0.2);
+  --aur-2: rgba(56, 189, 248, 0.16);
+  --aur-3: rgba(99, 102, 241, 0.16);
+  --grid-line: rgba(255, 255, 255, 0.03);
 }
 
 html {
@@ -11,9 +121,10 @@ html {
 }
 
 body {
-  @apply bg-[#05070e] text-slate-100 antialiased;
+  @apply bg-page text-ink antialiased;
   min-height: 100vh;
   font-feature-settings: "cv11", "ss01";
+  transition: background-color 0.35s ease, color 0.35s ease;
 }
 
 /* ---- Ambient background: aurora glows + faint scan grid, fixed behind all ---- */
@@ -24,9 +135,9 @@ body {
   z-index: -2;
   pointer-events: none;
   background:
-    radial-gradient(55% 45% at 12% 8%, rgba(47, 143, 255, 0.20), transparent 60%),
-    radial-gradient(50% 45% at 88% 12%, rgba(56, 189, 248, 0.16), transparent 60%),
-    radial-gradient(60% 55% at 50% 108%, rgba(99, 102, 241, 0.16), transparent 60%);
+    radial-gradient(55% 45% at 12% 8%, var(--aur-1), transparent 60%),
+    radial-gradient(50% 45% at 88% 12%, var(--aur-2), transparent 60%),
+    radial-gradient(60% 55% at 50% 108%, var(--aur-3), transparent 60%);
   animation: aurora 20s ease-in-out infinite alternate;
 }
 
@@ -37,8 +148,8 @@ body {
   z-index: -3;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
   background-size: 48px 48px;
   -webkit-mask-image: radial-gradient(circle at 50% 25%, black, transparent 78%);
   mask-image: radial-gradient(circle at 50% 25%, black, transparent 78%);
@@ -49,26 +160,32 @@ body {
   100% { transform: translate3d(0, -22px, 0) scale(1.06); opacity: 1; }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .ambient::before {
+    animation: none;
+  }
+}
+
 /* ---- Glass surfaces ---- */
 .glass {
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
-    0 24px 48px -24px rgba(0, 0, 0, 0.75);
+    inset 0 1px 0 0 var(--card-inset),
+    0 24px 48px -24px var(--card-shadow);
 }
 
 .card {
   @apply rounded-2xl;
-  border: 1px solid rgba(255, 255, 255, 0.10);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
-    0 24px 48px -24px rgba(0, 0, 0, 0.75);
+    inset 0 1px 0 0 var(--card-inset),
+    0 24px 48px -24px var(--card-shadow);
 }
 
 .card-hover {
@@ -76,11 +193,11 @@ body {
 }
 .card-hover:hover {
   transform: translateY(-4px);
-  border-color: rgba(120, 170, 255, 0.35);
+  border-color: var(--card-hover-border);
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.08),
-    0 32px 60px -28px rgba(0, 0, 0, 0.85),
-    0 0 0 1px rgba(120, 170, 255, 0.10);
+    inset 0 1px 0 0 var(--card-inset),
+    0 32px 60px -28px var(--card-shadow),
+    0 0 0 1px var(--card-hover-ring);
 }
 
 /* ---- Buttons ---- */
@@ -107,22 +224,22 @@ body {
   transform: translateY(-1px);
 }
 .btn-ghost {
-  @apply btn text-slate-100;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.03);
+  @apply btn text-ink;
+  border: 1px solid var(--line);
+  background: var(--ghost-bg);
 }
 .btn-ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--ghost-bg-hover);
 }
 
 /* ---- Form inputs ---- */
 .input {
-  @apply rounded-xl px-3.5 py-2.5 text-sm text-slate-100;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
+  @apply rounded-xl px-3.5 py-2.5 text-sm text-ink;
+  border: 1px solid var(--line);
+  background: var(--input-bg);
 }
 .input::placeholder {
-  color: rgb(100 116 139);
+  color: rgb(var(--c-ink4));
 }
 .input:focus {
   outline: none;
@@ -130,13 +247,33 @@ body {
   box-shadow: 0 0 0 3px rgba(47, 143, 255, 0.18);
 }
 
+/* ---- Status chips & notes (theme-aware) ---- */
+.chip-ok {
+  background: var(--chip-ok-bg);
+  color: var(--chip-ok-ink);
+}
+.chip-warn {
+  background: var(--chip-warn-bg);
+  color: var(--chip-warn-ink);
+}
+.note-warn {
+  border: 1px solid var(--note-warn-border);
+  background: var(--note-warn-bg);
+  color: var(--note-warn-ink);
+}
+
 /* ---- Text helpers ---- */
 .text-gradient {
-  background: linear-gradient(115deg, #f2f7ff 0%, #a9ccff 52%, #6aa8ff 100%);
+  background: linear-gradient(115deg, #10336e 0%, #1670f5 55%, #2f8fff 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
+.dark .text-gradient {
+  background: linear-gradient(115deg, #f2f7ff 0%, #a9ccff 52%, #6aa8ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
 .text-muted {
-  color: rgb(148 163 184);
+  color: rgb(var(--c-ink4));
 }

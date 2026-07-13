@@ -79,24 +79,24 @@ export default function PatientsPage() {
       </form>
       {error && <p className="text-sm text-red-400">{error}</p>}
 
-      <div className="card divide-y divide-white/[0.06]">
+      <div className="card divide-y divide-line">
         {loading ? (
-          <div className="grid place-items-center p-10 text-slate-500">
+          <div className="grid place-items-center p-10 text-ink-4">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         ) : patients.length === 0 ? (
-          <p className="p-6 text-sm text-slate-500">No patients yet. Add one above.</p>
+          <p className="p-6 text-sm text-ink-4">No patients yet. Add one above.</p>
         ) : (
           patients.map((p) => (
             <Link key={p.id} href={`/patients/${p.id}`}
-              className="flex items-center justify-between p-4 transition hover:bg-white/[0.03]">
+              className="flex items-center justify-between p-4 transition hover:bg-surface">
               <div>
                 <p className="font-medium">{p.name}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-ink-4">
                   {[p.sex, p.birth_year].filter(Boolean).join(" · ") || "—"}
                 </p>
               </div>
-              <ChevronRight className="h-4 w-4 text-slate-500" />
+              <ChevronRight className="h-4 w-4 text-ink-4" />
             </Link>
           ))
         )}
@@ -107,7 +107,7 @@ export default function PatientsPage() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+    <label className="flex flex-col gap-1 text-xs font-medium text-ink-4">
       {label}
       {children}
     </label>

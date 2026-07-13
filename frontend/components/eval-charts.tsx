@@ -4,9 +4,9 @@
 
 import { cn } from "@/lib/utils";
 
-const INK = "#94a3b8"; // secondary text (slate-400)
-const INK_MUTED = "#64748b"; // slate-500
-const GRID = "rgba(255,255,255,0.07)";
+// Theme-aware chart inks — values swap with light/dark in globals.css.
+const INK_MUTED = "var(--chart-ink-muted)";
+const GRID = "var(--chart-grid)";
 
 /* ------------------------------- Stat tile ------------------------------- */
 export function StatTile({
@@ -22,16 +22,16 @@ export function StatTile({
 }) {
   return (
     <div className={cn("card p-5", emphasis && "ring-1 ring-inset ring-brand-400/30")}>
-      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="text-xs font-medium uppercase tracking-wide text-ink-4">{label}</div>
       <div
         className={cn(
           "mt-1 text-3xl font-bold tabular-nums",
-          emphasis ? "text-gradient" : "text-slate-100",
+          emphasis ? "text-gradient" : "text-ink",
         )}
       >
         {value}
       </div>
-      {sub && <div className="mt-1 text-xs text-slate-500">{sub}</div>}
+      {sub && <div className="mt-1 text-xs text-ink-4">{sub}</div>}
     </div>
   );
 }
@@ -41,14 +41,14 @@ export function MetricBar({ value }: { value: number }) {
   const pct = Math.round(value * 100);
   return (
     <div className="flex items-center gap-2">
-      <div className="h-2 w-24 overflow-hidden rounded-full bg-white/[0.06]">
+      <div className="h-2 w-24 overflow-hidden rounded-full bg-surface-2">
         <div
           className="h-full rounded-full"
-          style={{ width: `${pct}%`, background: "#3b82f6" }}
+          style={{ width: `${pct}%`, background: "var(--series-train)" }}
           title={`${(value * 100).toFixed(1)}%`}
         />
       </div>
-      <span className="w-11 text-right text-xs tabular-nums text-slate-300">{value.toFixed(2)}</span>
+      <span className="w-11 text-right text-xs tabular-nums text-ink-2">{value.toFixed(2)}</span>
     </div>
   );
 }
@@ -68,7 +68,7 @@ export function ConfusionMatrix({
         {/* header row */}
         <div />
         {labels.map((l) => (
-          <div key={l} className="px-1 pb-2 text-center text-[11px] font-medium text-slate-400">
+          <div key={l} className="px-1 pb-2 text-center text-[11px] font-medium text-ink-3">
             {l}
           </div>
         ))}
@@ -76,7 +76,7 @@ export function ConfusionMatrix({
           <RowCells key={i} row={row} i={i} labels={labels} max={max} />
         ))}
       </div>
-      <p className="mt-3 text-[11px] text-slate-500">
+      <p className="mt-3 text-[11px] text-ink-4">
         Rows = actual · Columns = predicted · diagonal = correct. Darker = more cases.
       </p>
     </div>
@@ -86,7 +86,7 @@ export function ConfusionMatrix({
 function RowCells({ row, i, labels, max }: { row: number[]; i: number; labels: string[]; max: number }) {
   return (
     <>
-      <div className="flex items-center justify-end whitespace-nowrap pr-3 text-[11px] font-medium text-slate-400">
+      <div className="flex items-center justify-end whitespace-nowrap pr-3 text-[11px] font-medium text-ink-3">
         {labels[i]}
       </div>
       {row.map((v, j) => {
@@ -102,7 +102,7 @@ function RowCells({ row, i, labels, max }: { row: number[]; i: number; labels: s
             )}
             style={{
               background: `rgba(59,130,246,${(0.06 + t * 0.82).toFixed(3)})`,
-              color: t > 0.5 ? "#ffffff" : "#cbd5e1",
+              color: t > 0.5 ? "#ffffff" : "var(--chart-cell-ink)",
             }}
           >
             {v}
@@ -149,10 +149,10 @@ export function LineChart({
 
   return (
     <figure className="card p-5">
-      <figcaption className="mb-1 text-sm font-semibold text-slate-200">{title}</figcaption>
+      <figcaption className="mb-1 text-sm font-semibold text-ink">{title}</figcaption>
       <div className="mb-3 flex flex-wrap gap-4">
         {series.map((s) => (
-          <span key={s.name} className="flex items-center gap-1.5 text-xs text-slate-400">
+          <span key={s.name} className="flex items-center gap-1.5 text-xs text-ink-3">
             <span className="inline-block h-0.5 w-4 rounded-full" style={{ background: s.color }} />
             {s.name}
           </span>
@@ -176,7 +176,7 @@ export function LineChart({
               x2={xOf(phaseBoundaryAfter - 0.5)}
               y1={pad.top}
               y2={H - pad.bottom}
-              stroke="rgba(255,255,255,0.18)"
+              stroke="var(--chart-grid-strong)"
               strokeWidth={1}
               strokeDasharray="3 3"
             />

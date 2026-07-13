@@ -3,9 +3,27 @@
 import { useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { useTheme } from "./theme";
+
+/* Theme palettes: additive light-blue glow on dark; solid deeper blues on light
+   (additive blending washes out on a light background). */
+const PALETTES = {
+  dark: {
+    particle: "#7cc0ff", particleOpacity: 0.85, blending: THREE.AdditiveBlending,
+    shell: "#2f8fff", shellOpacity: 0.14,
+    core: "#1670f5", emissive: "#2f8fff",
+  },
+  light: {
+    particle: "#1670f5", particleOpacity: 0.55, blending: THREE.NormalBlending,
+    shell: "#0f59e1", shellOpacity: 0.22,
+    core: "#2f8fff", emissive: "#59b0ff",
+  },
+} as const;
+
+type Palette = (typeof PALETTES)[keyof typeof PALETTES];
 
 /** A rotating point-cloud sphere — evokes a volumetric scan / feature space. */
-function ScanVolume() {
+function ScanVolume({ palette }: { palette: Palette }) {
   const points = useRef<THREE.Points>(null);
   const shell = useRef<THREE.Mesh>(null);
   const core = useRef<THREE.Mesh>(null);
@@ -47,26 +65,26 @@ function ScanVolume() {
           <bufferAttribute attach="attributes-position" args={[positions, 3]} />
         </bufferGeometry>
         <pointsMaterial
-          color="#7cc0ff"
+          color={palette.particle}
           size={0.022}
           sizeAttenuation
           transparent
-          opacity={0.85}
-          blending={THREE.AdditiveBlending}
+          opacity={palette.particleOpacity}
+          blending={palette.blending}
           depthWrite={false}
         />
       </points>
 
       <mesh ref={shell}>
         <icosahedronGeometry args={[2.35, 1]} />
-        <meshBasicMaterial color="#2f8fff" wireframe transparent opacity={0.14} />
+        <meshBasicMaterial color={palette.shell} wireframe transparent opacity={palette.shellOpacity} />
       </mesh>
 
       <mesh ref={core}>
         <icosahedronGeometry args={[0.7, 2]} />
         <meshStandardMaterial
-          color="#1670f5"
-          emissive="#2f8fff"
+          color={palette.core}
+          emissive={palette.emissive}
           emissiveIntensity={0.6}
           roughness={0.35}
           metalness={0.4}
@@ -79,6 +97,8 @@ function ScanVolume() {
 }
 
 export default function Hero3D() {
+  const { theme } = useTheme();
+  const palette = PALETTES[theme];
   return (
     <Canvas
       camera={{ position: [0, 0, 6], fov: 45 }}
@@ -88,7 +108,7 @@ export default function Hero3D() {
       <ambientLight intensity={0.6} />
       <pointLight position={[4, 3, 5]} intensity={2.2} color="#8ec5ff" />
       <pointLight position={[-5, -2, -3]} intensity={1.4} color="#6366f1" />
-      <ScanVolume />
+      <ScanVolume palette={palette} />
     </Canvas>
   );
 }
