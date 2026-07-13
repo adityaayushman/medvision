@@ -128,9 +128,13 @@ def model_image(image: np.ndarray, cfg: PreprocessConfig) -> np.ndarray:
     extraction per sample would be wasteful. It still applies the DIP enhancement
     (denoise + CLAHE) that distinguishes MedChron from a raw-pixel classifier —
     it simply skips the segmentation/ROI stages the classifier doesn't consume.
+
+    Resizes to ``model_input_size`` *before* denoise/CLAHE, not after: the model
+    never sees more than that many pixels, so enhancing at the source resolution
+    (e.g. 1024x1024 DICOM) wastes ~20x the CPU for no benefit downstream.
     """
     gray = to_grayscale(image)
-    denoised = denoise(gray, cfg)
+    small = cv2.resize(gray, cfg.model_input_size, interpolation=cv2.INTER_AREA)
+    denoised = denoise(small, cfg)
     enhanced = enhance_contrast(denoised, cfg)
-    small = cv2.resize(enhanced, cfg.model_input_size, interpolation=cv2.INTER_AREA)
-    return cv2.cvtColor(small, cv2.COLOR_GRAY2RGB)
+    return cv2.cvtColor(enhanced, cv2.COLOR_GRAY2RGB)
