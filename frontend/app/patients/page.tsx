@@ -101,19 +101,6 @@ export default function PatientsPage() {
           ))
         )}
       </div>
-
-      <style jsx global>{`
-        .input {
-          border-radius: 0.6rem;
-          border: 1px solid rgb(203 213 225);
-          padding: 0.5rem 0.7rem;
-          font-size: 0.875rem;
-          background: transparent;
-        }
-        .dark .input {
-          border-color: rgb(51 65 85);
-        }
-      `}</style>
     </div>
   );
 }
