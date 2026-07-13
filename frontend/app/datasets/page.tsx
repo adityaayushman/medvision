@@ -14,7 +14,7 @@ const ACCESS_LABEL: Record<DatasetSpec["access"], string> = {
 
 const ACCESS_STYLE: Record<DatasetSpec["access"], string> = {
   open: "chip-ok",
-  kaggle: "bg-sky-900/30 text-sky-300",
+  kaggle: "chip-info",
   credentialed: "chip-warn",
 };
 
@@ -72,7 +72,7 @@ export default function DatasetsPage() {
           <Loader2 className="h-5 w-5 animate-spin" />
         </div>
       ) : error ? (
-        <p className="text-sm text-red-400">{error}</p>
+        <p className="text-sm text-bad">{error}</p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {datasets.map((d) => (

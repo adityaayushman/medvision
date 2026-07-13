@@ -97,7 +97,7 @@ export default function AnalyzePage() {
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanLine className="h-4 w-4" />}
             {loading ? "Analyzing…" : "Analyze"}
           </button>
-          {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
+          {error && <p className="mt-3 text-sm text-bad">{error}</p>}
         </div>
 
         <div className="card p-6">

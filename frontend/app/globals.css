@@ -52,6 +52,8 @@
   --chip-ok-ink: #047857;
   --chip-warn-bg: rgba(217, 119, 6, 0.13);
   --chip-warn-ink: #92400e;
+  --chip-info-bg: rgba(2, 132, 199, 0.12);
+  --chip-info-ink: #075985;
   --note-warn-border: rgba(180, 83, 9, 0.28);
   --note-warn-bg: rgba(217, 119, 6, 0.08);
   --note-warn-ink: #92400e;
@@ -106,6 +108,8 @@
   --chip-ok-ink: #6ee7b7;
   --chip-warn-bg: rgba(120, 53, 15, 0.35);
   --chip-warn-ink: #fcd34d;
+  --chip-info-bg: rgba(12, 74, 110, 0.35);
+  --chip-info-ink: #7dd3fc;
   --note-warn-border: rgba(251, 191, 36, 0.2);
   --note-warn-bg: rgba(251, 191, 36, 0.06);
   --note-warn-ink: rgba(253, 230, 138, 0.9);
@@ -255,6 +259,10 @@ body {
 .chip-warn {
   background: var(--chip-warn-bg);
   color: var(--chip-warn-ink);
+}
+.chip-info {
+  background: var(--chip-info-bg);
+  color: var(--chip-info-ink);
 }
 .note-warn {
   border: 1px solid var(--note-warn-border);

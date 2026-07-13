@@ -22,7 +22,7 @@ export default function PatientTimeline({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="space-y-6">
-      <Link href="/patients" className="inline-flex items-center gap-1 text-sm text-ink-4 hover:text-brand-600 dark:text-brand-400">
+      <Link href="/patients" className="inline-flex items-center gap-1 text-sm text-ink-4 hover:text-brand-600 dark:hover:text-brand-400">
         <ArrowLeft className="h-4 w-4" /> All patients
       </Link>
 
@@ -36,7 +36,7 @@ export default function PatientTimeline({ params }: { params: Promise<{ id: stri
           <Loader2 className="h-5 w-5 animate-spin" />
         </div>
       ) : error ? (
-        <p className="text-sm text-red-400">{error}</p>
+        <p className="text-sm text-bad">{error}</p>
       ) : studies.length === 0 ? (
         <p className="card p-6 text-sm text-ink-4">
           No studies yet for this patient. Upload one on the{" "}
@@ -46,7 +46,7 @@ export default function PatientTimeline({ params }: { params: Promise<{ id: stri
         <ol className="relative space-y-4 border-l border-line pl-6">
           {studies.map((s) => (
             <li key={s.id} className="relative">
-              <span className="absolute -left-[29px] top-2 h-3 w-3 rounded-full bg-brand-500 ring-4 ring-[#05070e]" />
+              <span className="absolute -left-[29px] top-2 h-3 w-3 rounded-full bg-brand-500 ring-4 ring-page" />
               <div className="card flex flex-wrap items-center gap-4 p-4">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={s.image_url} alt={`study ${s.id}`}
