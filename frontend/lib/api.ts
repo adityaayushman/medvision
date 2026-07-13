@@ -1,4 +1,4 @@
-import type { AnalyzeResponse, Health, Patient, StudyRead } from "./types";
+import type { AnalyzeResponse, DatasetSpec, Health, Patient, StudyRead } from "./types";
 
 // All requests are relative — next.config.mjs rewrites /api and /static to the
 // FastAPI backend, so there is a single origin in dev and no CORS friction.
@@ -44,4 +44,8 @@ export async function getTimeline(patientId: number): Promise<StudyRead[]> {
   return jsonOrThrow<StudyRead[]>(
     await fetch(`/api/patients/${patientId}/timeline`, { cache: "no-store" }),
   );
+}
+
+export async function listDatasets(): Promise<DatasetSpec[]> {
+  return jsonOrThrow<DatasetSpec[]>(await fetch("/api/datasets", { cache: "no-store" }));
 }

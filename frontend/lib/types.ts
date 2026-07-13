@@ -58,3 +58,16 @@ export interface Health {
   modality: string;
   disclaimer: string;
 }
+
+export interface DatasetSpec {
+  key: string;
+  name: string;
+  modality: string;
+  task: string;
+  access: "open" | "kaggle" | "credentialed";
+  roi_support: boolean;
+  approx_images: string;
+  url: string;
+  notes: string;
+  recommended_for: string[];
+}

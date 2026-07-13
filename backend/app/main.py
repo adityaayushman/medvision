@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from .config import settings
 from .db import init_db
 from .ml import get_analyzer
-from .routers import inference, patients
+from .routers import datasets, inference, patients
 
 
 @asynccontextmanager
@@ -45,6 +45,7 @@ app.mount("/static", StaticFiles(directory=str(settings.storage_dir)), name="sta
 
 app.include_router(inference.router)
 app.include_router(patients.router)
+app.include_router(datasets.router)
 
 
 @app.get("/health", tags=["meta"])

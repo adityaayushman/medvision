@@ -53,3 +53,16 @@ class AnalyzeResponse(BaseModel):
     image_url: str
     annotated_url: str
     heatmap_url: Optional[str] = None
+
+
+class DatasetSpecRead(BaseModel):
+    key: str
+    name: str
+    modality: str
+    task: str
+    access: str
+    roi_support: bool
+    approx_images: str
+    url: str
+    notes: str = ""
+    recommended_for: List[str] = []
