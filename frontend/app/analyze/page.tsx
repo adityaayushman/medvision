@@ -45,7 +45,7 @@ export default function AnalyzePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Analyze a scan</h1>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-ink-3">
           Upload a medical image. The pipeline runs quality assessment, enhancement,
           ROI extraction and — if a model is trained — classification with Grad-CAM.
         </p>
@@ -60,16 +60,16 @@ export default function AnalyzePage() {
               e.preventDefault();
               pick(e.dataTransfer.files?.[0] ?? null);
             }}
-            className="flex min-h-[260px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/15 p-4 text-center transition hover:border-brand-400/60"
+            className="flex min-h-[260px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-line-2 p-4 text-center transition hover:border-brand-400/60"
           >
             {preview ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={preview} alt="preview" className="max-h-[240px] rounded-lg object-contain" />
             ) : (
               <>
-                <Upload className="mb-2 h-8 w-8 text-slate-500" />
+                <Upload className="mb-2 h-8 w-8 text-ink-4" />
                 <p className="text-sm font-medium">Click or drop an image here</p>
-                <p className="text-xs text-slate-500">PNG / JPG chest X-ray</p>
+                <p className="text-xs text-ink-4">PNG / JPG chest X-ray</p>
               </>
             )}
           </div>
@@ -81,7 +81,7 @@ export default function AnalyzePage() {
             onChange={(e) => pick(e.target.files?.[0] ?? null)}
           />
 
-          <label className="mt-4 flex flex-col gap-1 text-xs font-medium text-slate-500">
+          <label className="mt-4 flex flex-col gap-1 text-xs font-medium text-ink-4">
             Attach to patient (optional)
             <select value={patientId} onChange={(e) => setPatientId(e.target.value)} className="input">
               <option value="">— none (saved to records only) —</option>
@@ -102,7 +102,7 @@ export default function AnalyzePage() {
 
         <div className="card p-6">
           {!result ? (
-            <div className="grid h-full min-h-[260px] place-items-center text-sm text-slate-500">
+            <div className="grid h-full min-h-[260px] place-items-center text-sm text-ink-4">
               Results appear here.
             </div>
           ) : (
@@ -121,7 +121,7 @@ function Results({ result }: { result: AnalyzeResponse }) {
       <div
         className={cn(
           "flex items-start gap-3 rounded-xl p-3 text-sm",
-          q.passed ? "bg-emerald-900/30 text-emerald-300" : "bg-amber-900/30 text-amber-300",
+          q.passed ? "chip-ok" : "chip-warn",
         )}
       >
         {q.passed ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
@@ -138,11 +138,11 @@ function Results({ result }: { result: AnalyzeResponse }) {
       {result.prediction ? (
         <div>
           <div className="mb-1 flex items-baseline justify-between">
-            <span className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            <span className="text-sm font-semibold uppercase tracking-wide text-ink-4">
               Prediction
             </span>
             {result.prediction.backbone && (
-              <span className="text-xs text-slate-500">{result.prediction.backbone}</span>
+              <span className="text-xs text-ink-4">{result.prediction.backbone}</span>
             )}
           </div>
           <p className="text-2xl font-bold capitalize">{result.prediction.label}</p>
@@ -155,7 +155,7 @@ function Results({ result }: { result: AnalyzeResponse }) {
                     <span className="capitalize">{label}</span>
                     <span>{pct(p)}</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
+                  <div className="h-2 overflow-hidden rounded-full bg-surface-2">
                     <div className="h-full rounded-full bg-brand-500" style={{ width: pct(p) }} />
                   </div>
                 </div>
@@ -163,14 +163,14 @@ function Results({ result }: { result: AnalyzeResponse }) {
           </div>
         </div>
       ) : (
-        <p className="rounded-lg bg-white/[0.04] p-3 text-xs text-slate-400">
+        <p className="rounded-lg bg-surface p-3 text-xs text-ink-3">
           No trained model loaded — showing preprocessing only.
         </p>
       )}
 
       {/* full DIP pipeline gallery */}
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-4">
           Processing pipeline
         </p>
         {result.stages && result.stages.length > 0 ? (
@@ -187,7 +187,7 @@ function Results({ result }: { result: AnalyzeResponse }) {
         )}
       </div>
 
-      <Link href="/records" className="block text-center text-xs text-brand-400 hover:underline">
+      <Link href="/records" className="block text-center text-xs text-brand-600 dark:text-brand-400 hover:underline">
         Saved to records →
       </Link>
     </div>
@@ -197,9 +197,9 @@ function Results({ result }: { result: AnalyzeResponse }) {
 function Figure({ title, src }: { title: string; src: string }) {
   return (
     <div>
-      <p className="mb-1 text-[11px] font-medium text-slate-500">{title}</p>
+      <p className="mb-1 text-[11px] font-medium text-ink-4">{title}</p>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={title} className="aspect-square w-full rounded-lg border border-white/10 object-cover" />
+      <img src={src} alt={title} className="aspect-square w-full rounded-lg border border-line object-cover" />
     </div>
   );
 }

@@ -23,35 +23,35 @@ export default function RecordsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <FileStack className="h-5 w-5 text-brand-400" />
+          <FileStack className="h-5 w-5 text-brand-600 dark:text-brand-400" />
           <h1 className="text-2xl font-bold">Analyzed records</h1>
         </div>
         <Link href="/analyze" className="btn-primary">
           <ScanLine className="h-4 w-4" /> New analysis
         </Link>
       </div>
-      <p className="max-w-2xl text-sm text-slate-400">
+      <p className="max-w-2xl text-sm text-ink-3">
         Every scan run through the analyzer, newest first — across all patients
         and unassigned ones.
       </p>
 
       {loading ? (
-        <div className="grid place-items-center p-10 text-slate-500">
+        <div className="grid place-items-center p-10 text-ink-4">
           <Loader2 className="h-5 w-5 animate-spin" />
         </div>
       ) : error ? (
         <p className="text-sm text-red-400">{error}</p>
       ) : studies.length === 0 ? (
         <div className="card p-8 text-center">
-          <p className="text-sm font-medium text-slate-200">No analyzed records yet.</p>
-          <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
+          <p className="text-sm font-medium text-ink">No analyzed records yet.</p>
+          <p className="mx-auto mt-1 max-w-md text-sm text-ink-4">
             Run a scan on the{" "}
-            <Link href="/analyze" className="text-brand-400 underline">
+            <Link href="/analyze" className="text-brand-600 dark:text-brand-400 underline">
               Analyze
             </Link>{" "}
             page and it will appear here.
           </p>
-          <p className="mx-auto mt-4 max-w-md rounded-lg border border-amber-400/20 bg-amber-400/[0.06] p-3 text-xs text-amber-200/90">
+          <p className="mx-auto mt-4 max-w-md rounded-lg border note-warn p-3 text-xs">
             Note: the demo backend runs on a free tier with temporary storage —
             records reset when the server restarts or after it sleeps (~15 min
             idle). Persistent storage is a configuration upgrade.
@@ -65,26 +65,26 @@ export default function RecordsPage() {
               <img
                 src={s.image_url}
                 alt={`study ${s.id}`}
-                className="h-40 w-full border-b border-white/10 object-cover"
+                className="h-40 w-full border-b border-line object-cover"
               />
               <div className="p-4">
                 <div className="flex items-center justify-between gap-2">
                   {s.prediction ? (
                     <span className="font-semibold capitalize">{s.prediction.label}</span>
                   ) : (
-                    <span className="text-sm text-slate-400">Preprocessing only</span>
+                    <span className="text-sm text-ink-3">Preprocessing only</span>
                   )}
                   {s.prediction && (
-                    <span className="text-xs tabular-nums text-slate-400">
+                    <span className="text-xs tabular-nums text-ink-3">
                       {pct(s.prediction.confidence)}
                     </span>
                   )}
                 </div>
-                <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                <div className="mt-2 flex items-center gap-2 text-xs text-ink-4">
                   <span
                     className={cn(
                       "inline-flex items-center gap-1",
-                      s.quality_passed ? "text-emerald-400" : "text-amber-400",
+                      s.quality_passed ? "text-ok" : "text-warn",
                     )}
                   >
                     {s.quality_passed ? (
@@ -99,13 +99,13 @@ export default function RecordsPage() {
                   {s.patient_id && (
                     <>
                       <span>·</span>
-                      <Link href={`/patients/${s.patient_id}`} className="text-brand-400 hover:underline">
+                      <Link href={`/patients/${s.patient_id}`} className="text-brand-600 dark:text-brand-400 hover:underline">
                         patient #{s.patient_id}
                       </Link>
                     </>
                   )}
                 </div>
-                <p className="mt-2 text-[11px] text-slate-600">
+                <p className="mt-2 text-[11px] text-ink-5">
                   {new Date(s.uploaded_at).toLocaleString()}
                 </p>
               </div>

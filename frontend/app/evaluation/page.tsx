@@ -29,14 +29,14 @@ export default function EvaluationPage() {
     <div className="space-y-10">
       {/* header */}
       <header>
-        <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+        <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-ink-4">
           <BarChart3 className="h-3.5 w-3.5" /> Evaluation
         </div>
         <h1 className="text-2xl font-bold sm:text-3xl">Model evaluation &amp; test procedure</h1>
-        <p className="mt-2 max-w-2xl text-sm text-slate-400">
+        <p className="mt-2 max-w-2xl text-sm text-ink-3">
           The deployed model, measured on a held-out test set with a documented,
           reproducible procedure. Every number below is the actual output of{" "}
-          <code className="rounded bg-white/[0.06] px-1 py-0.5 text-[12px] text-slate-300">
+          <code className="rounded bg-surface-2 px-1 py-0.5 text-[12px] text-ink-2">
             ml/scripts/evaluate.py
           </code>{" "}
           (metrics via scikit-learn) — not illustrative placeholders.
@@ -51,7 +51,7 @@ export default function EvaluationPage() {
       {/* model card */}
       <section className="card p-6">
         <div className="mb-4 flex items-center gap-2">
-          <Cpu className="h-4 w-4 text-brand-400" />
+          <Cpu className="h-4 w-4 text-brand-600 dark:text-brand-400" />
           <h2 className="font-semibold">Model under test</h2>
         </div>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
@@ -87,7 +87,7 @@ export default function EvaluationPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr className="text-left text-xs uppercase tracking-wide text-ink-4">
                   <th className="pb-2 pr-3 font-medium">Class</th>
                   <th className="pb-2 pr-3 font-medium">Prec.</th>
                   <th className="pb-2 pr-3 font-medium">Recall</th>
@@ -95,16 +95,16 @@ export default function EvaluationPage() {
                   <th className="pb-2 font-medium">n</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.06]">
+              <tbody className="divide-y divide-line">
                 {PER_CLASS.map((c) => (
                   <tr key={c.label}>
-                    <td className="py-2.5 pr-3 font-medium text-slate-200">{c.label}</td>
-                    <td className="py-2.5 pr-3 tabular-nums text-slate-400">{c.precision.toFixed(2)}</td>
-                    <td className="py-2.5 pr-3 tabular-nums text-slate-400">{c.recall.toFixed(2)}</td>
+                    <td className="py-2.5 pr-3 font-medium text-ink">{c.label}</td>
+                    <td className="py-2.5 pr-3 tabular-nums text-ink-3">{c.precision.toFixed(2)}</td>
+                    <td className="py-2.5 pr-3 tabular-nums text-ink-3">{c.recall.toFixed(2)}</td>
                     <td className="py-2.5 pr-3">
                       <MetricBar value={c.f1} />
                     </td>
-                    <td className="py-2.5 tabular-nums text-slate-400">{c.support}</td>
+                    <td className="py-2.5 tabular-nums text-ink-3">{c.support}</td>
                   </tr>
                 ))}
               </tbody>
@@ -115,7 +115,7 @@ export default function EvaluationPage() {
 
       {/* training curves */}
       <section>
-        <div className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+        <div className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-ink-4">
           Training history (8 epochs)
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
@@ -144,17 +144,17 @@ export default function EvaluationPage() {
 
       {/* procedures */}
       <section>
-        <div className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+        <div className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-ink-4">
           Procedures followed
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           {PROCEDURES.map((p) => (
             <div key={p.title} className="card p-5">
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-ok" />
                 <div>
-                  <h4 className="font-semibold text-slate-100">{p.title}</h4>
-                  <p className="mt-1 text-sm text-slate-400">{p.body}</p>
+                  <h4 className="font-semibold text-ink">{p.title}</h4>
+                  <p className="mt-1 text-sm text-ink-3">{p.body}</p>
                 </div>
               </div>
             </div>
@@ -163,7 +163,7 @@ export default function EvaluationPage() {
       </section>
 
       {/* honesty note */}
-      <section className="rounded-xl border border-amber-400/20 bg-amber-400/[0.06] p-4 text-sm text-amber-200/90">
+      <section className="rounded-xl border note-warn p-4 text-sm">
         <strong>Honest scope.</strong> This is a deliberately modest baseline — a
         5,000-image subset, 8 epochs, trained on CPU. An AUC of 0.83 is a real,
         reproducible result, not state of the art. It is research/educational
@@ -175,8 +175,8 @@ export default function EvaluationPage() {
 
 function Badge({ icon: Icon, children }: { icon: any; children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium text-slate-300">
-      <Icon className="h-3.5 w-3.5 text-brand-400" />
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium text-ink-2">
+      <Icon className="h-3.5 w-3.5 text-brand-600 dark:text-brand-400" />
       {children}
     </span>
   );
@@ -185,8 +185,8 @@ function Badge({ icon: Icon, children }: { icon: any; children: React.ReactNode 
 function Field({ k, v }: { k: string; v: string }) {
   return (
     <div>
-      <dt className="text-xs text-slate-500">{k}</dt>
-      <dd className="mt-0.5 font-medium text-slate-200">{v}</dd>
+      <dt className="text-xs text-ink-4">{k}</dt>
+      <dd className="mt-0.5 font-medium text-ink">{v}</dd>
     </div>
   );
 }

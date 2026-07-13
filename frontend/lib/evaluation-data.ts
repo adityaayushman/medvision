@@ -63,10 +63,13 @@ export const HISTORY: EpochRecord[] = [
   { step: 8, phase: "finetune", train_loss: 0.7683, val_loss: 0.7880, train_acc: 0.6271, val_acc: 0.6267 },
 ];
 
-// Series colors — validated CVD-safe pair (see dataviz validator: ΔE 121, dark mode).
+// Series colors — CVD-safe blue/orange pair, theme-aware via CSS vars so each
+// mode uses a step that passes ≥3:1 contrast on its surface (computed:
+// dark #3b82f6 5.47:1, #d97706 6.32:1 · light #2563eb 4.72:1, #b45309 4.58:1;
+// deuteranopia-sim separation 223/441).
 export const SERIES = {
-  train: "#3b82f6",
-  val: "#d97706",
+  train: "var(--series-train)",
+  val: "var(--series-val)",
 };
 
 export const PROCEDURES = [
