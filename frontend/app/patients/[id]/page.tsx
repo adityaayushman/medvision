@@ -22,12 +22,12 @@ export default function PatientTimeline({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="space-y-6">
-      <Link href="/patients" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-600">
+      <Link href="/patients" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand-400">
         <ArrowLeft className="h-4 w-4" /> All patients
       </Link>
 
       <div className="flex items-center gap-2">
-        <Activity className="h-5 w-5 text-brand-600" />
+        <Activity className="h-5 w-5 text-brand-400" />
         <h1 className="text-2xl font-bold">Study timeline</h1>
       </div>
 
@@ -36,21 +36,21 @@ export default function PatientTimeline({ params }: { params: Promise<{ id: stri
           <Loader2 className="h-5 w-5 animate-spin" />
         </div>
       ) : error ? (
-        <p className="text-sm text-red-600">{error}</p>
+        <p className="text-sm text-red-400">{error}</p>
       ) : studies.length === 0 ? (
         <p className="card p-6 text-sm text-slate-500">
           No studies yet for this patient. Upload one on the{" "}
-          <Link href="/analyze" className="text-brand-600 underline">Analyze</Link> page.
+          <Link href="/analyze" className="text-brand-400 underline">Analyze</Link> page.
         </p>
       ) : (
-        <ol className="relative space-y-4 border-l border-slate-200 pl-6 dark:border-slate-800">
+        <ol className="relative space-y-4 border-l border-white/10 pl-6">
           {studies.map((s) => (
             <li key={s.id} className="relative">
-              <span className="absolute -left-[29px] top-2 h-3 w-3 rounded-full bg-brand-500 ring-4 ring-white dark:ring-slate-950" />
+              <span className="absolute -left-[29px] top-2 h-3 w-3 rounded-full bg-brand-500 ring-4 ring-[#05070e]" />
               <div className="card flex flex-wrap items-center gap-4 p-4">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={s.image_url} alt={`study ${s.id}`}
-                  className="h-20 w-20 rounded-lg border border-slate-200 object-cover dark:border-slate-800" />
+                  className="h-20 w-20 rounded-lg border border-white/10 object-cover" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-slate-500">
                     {new Date(s.uploaded_at).toLocaleString()} · {s.modality}

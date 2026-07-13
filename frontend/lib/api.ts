@@ -49,3 +49,7 @@ export async function getTimeline(patientId: number): Promise<StudyRead[]> {
 export async function listDatasets(): Promise<DatasetSpec[]> {
   return jsonOrThrow<DatasetSpec[]>(await fetch("/api/datasets", { cache: "no-store" }));
 }
+
+export async function listStudies(): Promise<StudyRead[]> {
+  return jsonOrThrow<StudyRead[]>(await fetch("/api/studies", { cache: "no-store" }));
+}

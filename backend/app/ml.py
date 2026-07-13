@@ -41,10 +41,12 @@ class AnalyzerService:
     def model_loaded(self) -> bool:
         return self.predictor is not None
 
-    def analyze(
-        self, image_bgr: np.ndarray
-    ) -> Tuple[Dict, np.ndarray, Optional[np.ndarray]]:
-        """Return (payload, annotated_image, gradcam_overlay_or_None)."""
+    def analyze(self, image_bgr: np.ndarray):
+        """Return (payload, PipelineResult, gradcam_overlay_or_None).
+
+        The PipelineResult carries every DIP stage (enhanced, segmentation mask,
+        annotated ROIs, ...) so the API can expose the full processing gallery.
+        """
         result = self.pipeline.run(image_bgr)
         payload: Dict = {
             "modality": settings.modality,
@@ -61,7 +63,7 @@ class AnalyzerService:
             prediction["backbone"] = self.predictor.model_config.backbone
             payload["prediction"] = prediction
 
-        return payload, result.annotated, overlay
+        return payload, result, overlay
 
 
 @lru_cache(maxsize=1)

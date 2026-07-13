@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, BarChart3, Database, ScanLine, Users } from "lucide-react";
+import { Activity, BarChart3, Database, FileStack, ScanLine, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/", label: "Overview", icon: Activity },
   { href: "/analyze", label: "Analyze", icon: ScanLine },
+  { href: "/records", label: "Records", icon: FileStack },
   { href: "/evaluation", label: "Evaluation", icon: BarChart3 },
   { href: "/patients", label: "Patients", icon: Users },
   { href: "/datasets", label: "Datasets", icon: Database },

@@ -53,6 +53,7 @@ class AnalyzeResponse(BaseModel):
     image_url: str
     annotated_url: str
     heatmap_url: Optional[str] = None
+    stages: List[Dict] = []
 
 
 class DatasetSpecRead(BaseModel):
