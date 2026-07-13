@@ -1,0 +1,30 @@
+# Normalize line endings: text files stored as LF in the repo, checked out
+# native on each OS. Silences the "LF will be replaced by CRLF" warnings.
+* text=auto eol=lf
+
+# Explicit text types
+*.py    text
+*.ts    text
+*.tsx   text
+*.js    text
+*.mjs   text
+*.json  text
+*.css   text
+*.md    text
+*.toml  text
+*.txt   text
+*.yml   text
+*.yaml  text
+
+# Binary assets (never touch line endings)
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.pdf   binary
+*.docx  binary
+*.pt    binary
+*.pth   binary
+*.h5    binary
+*.keras binary
+*.onnx  binary
