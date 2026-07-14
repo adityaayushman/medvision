@@ -80,7 +80,7 @@ export default function AnalyzePage() {
               <>
                 <Upload className="mb-2 h-8 w-8 text-ink-4" />
                 <p className="text-sm font-medium">Click or drop an image here</p>
-                <p className="text-xs text-ink-4">PNG / JPG chest X-ray</p>
+                <p className="text-xs text-ink-4">PNG / JPG — pick the modality below</p>
               </>
             )}
           </div>

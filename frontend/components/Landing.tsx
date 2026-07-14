@@ -14,9 +14,9 @@ import {
   Activity,
   CircleDot,
 } from "lucide-react";
-import HeroCanvas from "./HeroCanvas";
 import { getHealth } from "@/lib/api";
 import type { Health } from "@/lib/types";
+import { MODALITY_LABELS } from "@/lib/types";
 
 const PIPELINE = [
   "Quality check",
@@ -47,7 +47,7 @@ const FEATURES = [
   {
     icon: Sparkles,
     title: "Modality-agnostic",
-    body: "Chest X-ray ships first; brain MRI and mammography are configuration presets, not rewrites.",
+    body: "Chest X-ray and brain MRI are live today with real trained models; each new modality is a config preset, not a rewrite.",
   },
 ];
 
@@ -67,11 +67,11 @@ export default function Landing() {
     <div className="space-y-16">
       {/* ---------- HERO ---------- */}
       <section className="card relative overflow-hidden">
-        {/* 3D scene, right-anchored, fading into the card */}
-        <div className="absolute inset-y-0 right-0 w-full sm:w-[62%]">
-          <HeroCanvas />
-          <div className="absolute inset-0 bg-gradient-to-r from-hero via-hero/70 to-transparent" />
-        </div>
+        {/* Tint only — the global ambient 3D backdrop (one WebGL canvas per
+            page, not two) already shows through the glass card. A second,
+            dedicated hero scene here used to double the GPU/render load on
+            the highest-traffic page. */}
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-full sm:w-[62%] bg-gradient-to-r from-hero via-hero/70 to-transparent" />
 
         <div className="relative px-6 py-14 sm:px-10 sm:py-20">
           <motion.div
@@ -134,7 +134,10 @@ export default function Landing() {
               {health === null
                 ? "Connecting to inference API…"
                 : health.model_loaded
-                  ? "Live model: RSNA chest X-ray classifier (EfficientNet-B0)"
+                  ? `Live models: ${Object.entries(health.modalities)
+                      .filter(([, loaded]) => loaded)
+                      .map(([m]) => MODALITY_LABELS[m] ?? m)
+                      .join(" · ")} (EfficientNet-B0)`
                   : "API online · preprocess-only mode (no model loaded)"}
             </span>
           </motion.div>
@@ -196,8 +199,8 @@ export default function Landing() {
         <div className="relative">
           <h2 className="text-2xl font-bold sm:text-3xl">See the whole pipeline on one scan.</h2>
           <p className="mx-auto mt-2 max-w-lg text-sm text-ink-3">
-            Upload a chest X-ray and watch quality assessment, ROI extraction,
-            classification and Grad-CAM run end to end.
+            Upload a chest X-ray or brain MRI and watch quality assessment, ROI
+            extraction, classification and Grad-CAM run end to end.
           </p>
           <Link href="/analyze" className="btn-primary mx-auto mt-6">
             <ScanLine className="h-4 w-4" /> Try the analyzer
