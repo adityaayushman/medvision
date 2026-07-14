@@ -31,14 +31,22 @@ unmodified while each phase lands. Concretely:
 ---
 
 ## Version 2 — Multi-Modality Expansion
-**Feasibility: High.** The architecture was built for this — `PRESETS` in
-[`config.py`](ml/src/medchron/config.py) already has `brain_mri` and
-`mammography` entries; they've never been paired with a trained model.
+**Status: in progress, live at [medchron-ai.vercel.app/analyze](https://medchron-ai.vercel.app/analyze).**
+The architecture was built for this — `PRESETS` in
+[`config.py`](ml/src/medchron/config.py) already had `brain_mri` and
+`mammography` entries waiting for a trained model.
 
-| Modality | What's missing | Effort |
+| Modality | Status | Real result |
 |---|---|---|
-| Brain MRI (tumor classification) | Dataset (e.g. Br35H, Figshare brain tumor set) + training run | 1 training pipeline run |
-| Mammography (lesion classification) | Dataset (e.g. CBIS-DDSM, MIAS) + training run | 1 training pipeline run |
+| Chest X-ray | ✅ Live (v1) | accuracy 64%, ROC-AUC 0.825 |
+| Brain MRI (4-class tumor classification) | ✅ Live | accuracy 82.0%, macro F1 0.819, ROC-AUC 0.956 (held-out test, sartajbhuvaji/brain-tumor-classification-mri, 3,264 images) |
+| Mammography (Normal/Benign/Malignant) | ⏸️ Scaffolded, **not serving predictions** | trained on MIAS (322 images) — test accuracy 59.2%, macro F1 0.37, *below* the 63.3% majority-class baseline. Not deployed: a model that loses to a constant guess doesn't ship, per the same principle behind the quality gate. Needs CBIS-DDSM (~10k+ images) to be a real classifier; DIP pipeline + quality gate work today, classification is pending better data. |
+
+A cross-modality bug was caught and fixed along the way: quality-gate
+thresholds (blur/brightness/contrast) were implicitly tuned for chest X-ray
+and don't transfer — verified this rejected 60% of genuinely fine brain MRI
+scans before `min_focus` became a per-modality config value instead of a
+global constant.
 
 **Build shape:** a modality switcher on the Analyze page → routes to the
 matching config preset + checkpoint. The DIP pipeline, quality gate, Grad-CAM,
