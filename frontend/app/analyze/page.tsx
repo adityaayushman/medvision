@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Loader2, Upload, ScanLine } from "lucide-react";
-import { analyze, listPatients } from "@/lib/api";
-import type { AnalyzeResponse, Patient } from "@/lib/types";
+import { analyze, getHealth, listPatients } from "@/lib/api";
+import type { AnalyzeResponse, Health, Patient } from "@/lib/types";
+import { MODALITY_LABELS } from "@/lib/types";
 import { pct } from "@/lib/utils";
 import { QualityScorePanel } from "@/components/QualityScorePanel";
 import { ProcessingTimeline } from "@/components/ProcessingTimeline";
@@ -20,11 +21,16 @@ export default function AnalyzePage() {
   const [error, setError] = useState<string | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [patientId, setPatientId] = useState<string>("");
+  const [health, setHealth] = useState<Health | null>(null);
+  const [modality, setModality] = useState("chest_xray");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     listPatients().then(setPatients).catch(() => setPatients([]));
+    getHealth().then(setHealth).catch(() => setHealth(null));
   }, []);
+
+  const modalities = health ? Object.keys(health.modalities) : ["chest_xray"];
 
   function pick(f: File | null) {
     setError(null);
@@ -38,7 +44,7 @@ export default function AnalyzePage() {
     setLoading(true);
     setError(null);
     try {
-      setResult(await analyze(file, patientId ? Number(patientId) : undefined));
+      setResult(await analyze(file, patientId ? Number(patientId) : undefined, modality));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Analysis failed");
     } finally {
@@ -85,6 +91,18 @@ export default function AnalyzePage() {
             className="hidden"
             onChange={(e) => pick(e.target.files?.[0] ?? null)}
           />
+
+          <label className="mt-4 flex flex-col gap-1 text-xs font-medium text-ink-4">
+            Modality
+            <select value={modality} onChange={(e) => setModality(e.target.value)} className="input">
+              {modalities.map((m) => (
+                <option key={m} value={m}>
+                  {MODALITY_LABELS[m] ?? m}
+                  {health && !health.modalities[m] ? " (preprocessing only — no model loaded)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <label className="mt-4 flex flex-col gap-1 text-xs font-medium text-ink-4">
             Attach to patient (optional)
