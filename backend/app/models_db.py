@@ -42,9 +42,11 @@ class Study(SQLModel, table=True):
     num_rois: int = 0
 
     # research-grade processing metadata (nullable: absent on studies analyzed
-    # before these fields existed)
+    # before these fields existed — every field here must be Optional, since the
+    # live column was added via ALTER TABLE without NOT NULL and can hold NULL
+    # on pre-existing rows)
     quality_score: Optional[int] = None
-    analysis_stopped: bool = False
+    analysis_stopped: Optional[bool] = False
     model_version: Optional[str] = None
     processing_time_ms: Optional[float] = None
     inference_time_ms: Optional[float] = None
