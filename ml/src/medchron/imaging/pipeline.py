@@ -79,7 +79,12 @@ class MedicalImagePipeline:
 
         original = cv2.resize(image, cfg.target_size, interpolation=cv2.INTER_AREA)
         gray = to_grayscale(original)
-        quality = assess_quality(gray)               # gate on the raw image
+        quality = assess_quality(               # gate on the raw image
+            gray,
+            min_focus=cfg.min_focus,
+            brightness_range=(cfg.brightness_lo, cfg.brightness_hi),
+            min_contrast=cfg.min_contrast,
+        )
         denoised = denoise(gray, cfg)
         enhanced = enhance_contrast(denoised, cfg)
         mask = segment(enhanced, cfg)
