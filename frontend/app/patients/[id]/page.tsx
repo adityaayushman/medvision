@@ -3,17 +3,19 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Activity } from "lucide-react";
-import { getTimeline } from "@/lib/api";
-import type { StudyRead } from "@/lib/types";
+import { getPatient, getTimeline } from "@/lib/api";
+import type { Patient, StudyRead } from "@/lib/types";
 import { pct } from "@/lib/utils";
 
 export default function PatientTimeline({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const [patient, setPatient] = useState<Patient | null>(null);
   const [studies, setStudies] = useState<StudyRead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    getPatient(Number(id)).then(setPatient).catch(() => setPatient(null));
     getTimeline(Number(id))
       .then(setStudies)
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load timeline"))
@@ -28,8 +30,16 @@ export default function PatientTimeline({ params }: { params: Promise<{ id: stri
 
       <div className="flex items-center gap-2">
         <Activity className="h-5 w-5 text-brand-600 dark:text-brand-400" />
-        <h1 className="text-2xl font-bold">Study timeline</h1>
+        <h1 className="text-2xl font-bold">
+          {patient ? patient.name : "Study timeline"}
+        </h1>
       </div>
+      {patient && (
+        <p className="text-sm text-ink-4">
+          {[patient.sex, patient.birth_year].filter(Boolean).join(" · ") || "—"} ·{" "}
+          {patient.study_count} scan{patient.study_count === 1 ? "" : "s"} on record
+        </p>
+      )}
 
       {loading ? (
         <div className="grid place-items-center p-10 text-ink-4">

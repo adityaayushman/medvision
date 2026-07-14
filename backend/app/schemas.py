@@ -20,6 +20,9 @@ class PatientRead(BaseModel):
     sex: Optional[str] = None
     birth_year: Optional[int] = None
     created_at: datetime
+    study_count: int = 0
+    last_study_at: Optional[datetime] = None
+    last_label: Optional[str] = None
 
 
 class PredictionRead(BaseModel):
@@ -33,6 +36,7 @@ class PredictionRead(BaseModel):
 class StudyRead(BaseModel):
     id: int
     patient_id: Optional[int]
+    patient_name: Optional[str] = None
     modality: str
     uploaded_at: datetime
     quality_passed: bool

@@ -40,6 +40,10 @@ export async function createPatient(data: {
   return jsonOrThrow<Patient>(res);
 }
 
+export async function getPatient(patientId: number): Promise<Patient> {
+  return jsonOrThrow<Patient>(await fetch(`/api/patients/${patientId}`, { cache: "no-store" }));
+}
+
 export async function getTimeline(patientId: number): Promise<StudyRead[]> {
   return jsonOrThrow<StudyRead[]>(
     await fetch(`/api/patients/${patientId}/timeline`, { cache: "no-store" }),
@@ -52,4 +56,13 @@ export async function listDatasets(): Promise<DatasetSpec[]> {
 
 export async function listStudies(): Promise<StudyRead[]> {
   return jsonOrThrow<StudyRead[]>(await fetch("/api/studies", { cache: "no-store" }));
+}
+
+export async function assignPatient(studyId: number, patientId: number): Promise<StudyRead> {
+  const res = await fetch(`/api/studies/${studyId}/patient`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ patient_id: patientId }),
+  });
+  return jsonOrThrow<StudyRead>(res);
 }
