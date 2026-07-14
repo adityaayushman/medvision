@@ -117,6 +117,23 @@ REGISTRY: Dict[str, DatasetSpec] = {
               "so splits are image-level rather than patient-level.",
         recommended_for=["v2", "multi-modality"],
     ),
+    # ---- Mammography classification (v2 multi-modality) ----
+    "mias_mammography": DatasetSpec(
+        key="mias_mammography",
+        name="MIAS Mammography Database",
+        modality="Mammography",
+        task="classification",
+        access="kaggle",
+        roi_support=True,       # abnormality center + radius annotated for non-normal cases
+        approx_images="322",
+        url="https://www.kaggle.com/datasets/kmader/mias-mammography",
+        notes="Classic MIAS benchmark; small (322 scans). 3-class (Normal/Benign/Malignant) "
+              "derived from the official Info.txt abnormality + severity annotations. Trained "
+              "and evaluated (test macro F1 0.37, accuracy below the majority-class baseline) "
+              "-- too small to ship a reliable classifier; not deployed live. CBIS-DDSM "
+              "(~10k+ images) is the follow-up dataset to actually make this modality usable.",
+        recommended_for=["v2", "multi-modality"],
+    ),
 }
 
 

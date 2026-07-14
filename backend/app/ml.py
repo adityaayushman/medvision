@@ -35,6 +35,7 @@ from .config import settings
 MODALITY_CHECKPOINTS: Dict[str, str] = {
     "chest_xray": settings.model_checkpoint,
     "brain_mri": settings.model_checkpoint_brain_mri,
+    "mammography": settings.model_checkpoint_mammography,
 }
 
 
