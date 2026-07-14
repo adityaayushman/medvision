@@ -7,6 +7,8 @@ image + ImageNet normalisation), so train/serve stay consistent.
 
 from __future__ import annotations
 
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
@@ -41,6 +43,17 @@ class Predictor:
         self._tf = build_transforms(train=False, input_size=self.preprocess.model_input_size[0])
         self._target_layer = default_gradcam_layer(self.model, self.model_config.backbone)
 
+        # Honest, non-fabricated version string: backbone + task + how many epochs
+        # it was actually trained for (from the saved history) + the checkpoint
+        # file's own mtime, since no explicit version field is persisted at train time.
+        num_epochs = len(ckpt.get("history", []))
+        trained_at = datetime.fromtimestamp(Path(ckpt_path).stat().st_mtime, tz=timezone.utc)
+        task = ckpt.get("task", "classification")
+        self.model_version = (
+            f"{self.model_config.backbone} ({task}, {num_epochs} epochs, "
+            f"trained {trained_at.strftime('%Y-%m-%d')})"
+        )
+
     def _to_tensor(self, image_bgr: np.ndarray) -> torch.Tensor:
         rgb = model_image(image_bgr, self.preprocess)          # enhanced HxWx3 uint8
         tensor = self._tf(Image.fromarray(rgb))
@@ -65,14 +78,18 @@ class Predictor:
         self, image_bgr: np.ndarray, class_idx: Optional[int] = None
     ) -> Tuple[np.ndarray, Dict]:
         """Return (Grad-CAM overlay BGR at working resolution, prediction dict)."""
+        t0 = time.perf_counter()
         tensor = self._to_tensor(image_bgr)
         with GradCAM(self.model, self._target_layer) as cam:
             heatmap, used_idx, probs = cam(tensor, class_idx)
+        inference_time_ms = round((time.perf_counter() - t0) * 1000, 1)
 
         base = cv2.resize(image_bgr, self.preprocess.target_size, interpolation=cv2.INTER_AREA)
         overlay = overlay_heatmap(base, heatmap)
         prediction = self._format(probs)
         prediction["explained_class"] = self.idx_to_class[used_idx]
+        prediction["model_version"] = self.model_version
+        prediction["inference_time_ms"] = inference_time_ms
         return overlay, prediction
 
     def predict_path(self, path: str) -> Dict:

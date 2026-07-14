@@ -41,6 +41,15 @@ class Study(SQLModel, table=True):
     quality_reasons: str = ""     # semicolon-joined
     num_rois: int = 0
 
+    # research-grade processing metadata (nullable: absent on studies analyzed
+    # before these fields existed)
+    quality_score: Optional[int] = None
+    analysis_stopped: bool = False
+    model_version: Optional[str] = None
+    processing_time_ms: Optional[float] = None
+    inference_time_ms: Optional[float] = None
+    segmentation_success: Optional[bool] = None
+
     patient: Optional[Patient] = Relationship(back_populates="studies")
     prediction: Optional["Prediction"] = Relationship(back_populates="study")
 

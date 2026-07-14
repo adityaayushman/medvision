@@ -55,6 +55,8 @@ async def analyze(
     image = _decode(await file.read())
     payload, result, overlay = analyzer.analyze(image)
 
+    meta = payload["processing_metadata"]
+
     # persist the Study first (its id is the FK for the images)
     study = Study(
         patient_id=patient_id,
@@ -63,6 +65,12 @@ async def analyze(
         quality_passed=payload["quality"]["passed"],
         quality_reasons=";".join(payload["quality"]["reasons"]),
         num_rois=payload["num_rois"],
+        quality_score=payload["quality"]["overall_score"],
+        analysis_stopped=payload["analysis_stopped"],
+        model_version=meta.get("model_version"),
+        processing_time_ms=meta.get("processing_time_ms"),
+        inference_time_ms=meta.get("inference_time_ms"),
+        segmentation_success=meta.get("segmentation_success"),
     )
     session.add(study)
     session.commit()
@@ -116,4 +124,7 @@ async def analyze(
         annotated_url=url("rois") or "",
         heatmap_url=heatmap_url,
         stages=stages,
+        analysis_stopped=payload["analysis_stopped"],
+        pipeline_steps=payload["pipeline_steps"],
+        processing_metadata=meta,
     )
