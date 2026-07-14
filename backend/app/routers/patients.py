@@ -89,7 +89,9 @@ def _study_to_read(study: Study, session: Session) -> StudyRead:
         uploaded_at=study.uploaded_at,
         quality_passed=study.quality_passed,
         quality_score=study.quality_score,
-        analysis_stopped=study.analysis_stopped,
+        # NULL on studies analyzed before this column existed — treat as
+        # "not stopped" (the previous universal behavior), not a validation error.
+        analysis_stopped=bool(study.analysis_stopped),
         model_version=study.model_version,
         num_rois=study.num_rois,
         image_url=url("original") or url("rois") or "",

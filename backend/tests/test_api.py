@@ -103,6 +103,35 @@ def test_studies_lists_all_analyzed(client):
     assert any(s["id"] == study_id for s in studies)
 
 
+def test_studies_survive_null_legacy_columns(client):
+    """Studies analyzed before quality_score/analysis_stopped/model_version
+    existed have NULL in those columns. /api/studies and the patient timeline
+    must not 500 on them (regression: analysis_stopped was a required bool in
+    StudyRead, which Pydantic rejects for a None value)."""
+    from sqlmodel import Session, select
+
+    from app.db import engine
+    from app.models_db import Study
+
+    files = {"file": ("scan.png", _png_bytes(), "image/png")}
+    r = client.post("/api/analyze", files=files)
+    assert r.status_code == 200
+    study_id = r.json()["study_id"]
+
+    with Session(engine) as session:
+        study = session.exec(select(Study).where(Study.id == study_id)).first()
+        study.quality_score = None
+        study.analysis_stopped = None  # simulate a pre-migration row
+        study.model_version = None
+        session.add(study)
+        session.commit()
+
+    r = client.get("/api/studies")
+    assert r.status_code == 200
+    match = next(s for s in r.json() if s["id"] == study_id)
+    assert match["analysis_stopped"] is False  # coerced from NULL, not a validation error
+
+
 def test_datasets_registry(client):
     r = client.get("/api/datasets")
     assert r.status_code == 200
