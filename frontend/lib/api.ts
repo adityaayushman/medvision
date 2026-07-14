@@ -11,10 +11,15 @@ async function jsonOrThrow<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function analyze(file: File, patientId?: number): Promise<AnalyzeResponse> {
+export async function analyze(
+  file: File,
+  patientId?: number,
+  modality?: string,
+): Promise<AnalyzeResponse> {
   const form = new FormData();
   form.append("file", file);
   if (patientId) form.append("patient_id", String(patientId));
+  if (modality) form.append("modality", modality);
   const res = await fetch("/api/analyze", { method: "POST", body: form });
   return jsonOrThrow<AnalyzeResponse>(res);
 }

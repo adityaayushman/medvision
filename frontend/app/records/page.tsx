@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FileStack, Loader2, ScanLine, ShieldAlert, ShieldCheck, UserPlus } from "lucide-react";
 import { assignPatient, listPatients, listStudies } from "@/lib/api";
 import type { Patient, StudyRead } from "@/lib/types";
+import { MODALITY_LABELS } from "@/lib/types";
 import { cn, pct } from "@/lib/utils";
 
 export default function RecordsPage() {
@@ -74,6 +75,9 @@ export default function RecordsPage() {
                 className="h-40 w-full border-b border-line object-cover"
               />
               <div className="p-4">
+                <span className="mb-2 inline-block rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-medium text-ink-3">
+                  {MODALITY_LABELS[s.modality] ?? s.modality}
+                </span>
                 <div className="flex items-center justify-between gap-2">
                   {s.analysis_stopped ? (
                     <span className="font-semibold text-bad">Analysis stopped</span>

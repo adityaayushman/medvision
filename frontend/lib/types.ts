@@ -106,8 +106,14 @@ export interface Health {
   status: string;
   model_loaded: boolean;
   modality: string;
+  modalities: Record<string, boolean>;
   disclaimer: string;
 }
+
+export const MODALITY_LABELS: Record<string, string> = {
+  chest_xray: "Chest X-ray",
+  brain_mri: "Brain MRI",
+};
 
 export interface DatasetSpec {
   key: string;
