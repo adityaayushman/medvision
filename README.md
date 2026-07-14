@@ -129,6 +129,14 @@ For real training on this laptop you have three good options:
 
 Every training/eval/explain script takes `--device {auto,cpu,cuda}`.
 
+## Roadmap
+
+See [`ROADMAP.md`](ROADMAP.md) for the version progression beyond this
+release — multi-modality (MRI/mammography), AI-assisted reporting, model
+ensembles, a clinical dashboard, a mobile PWA, and an honestly-scoped section
+on PACS/federated learning (both need a real institutional partner to be more
+than a simulation).
+
 ## License
 
 Apache-2.0 (see `pyproject.toml`).
