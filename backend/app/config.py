@@ -15,9 +15,17 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 class Settings:
     # SQLite lives under backend/ by default; override with DATABASE_URL
     database_url: str = os.getenv("DATABASE_URL", f"sqlite:///{REPO_ROOT / 'backend' / 'medchron.db'}")
-    # trained checkpoint; if missing, the API runs in preprocess-only mode
+    # trained checkpoint; if missing, the API runs in preprocess-only mode.
+    # `modality` is the *default* modality (used when a request doesn't specify
+    # one, keeping every existing caller working unchanged); additional
+    # modalities each get their own optional checkpoint env var and simply run
+    # preprocess-only if unset, same as the default did before v2.
     model_checkpoint: str = os.getenv("MODEL_CHECKPOINT", str(REPO_ROOT / "ml" / "artifacts" / "model_vgg16.pt"))
     modality: str = os.getenv("MEDCHRON_MODALITY", "chest_xray")
+    model_checkpoint_brain_mri: str = os.getenv(
+        "MODEL_CHECKPOINT_BRAIN_MRI",
+        str(REPO_ROOT / "ml" / "artifacts" / "brain_mri" / "model_efficientnet_b0.pt"),
+    )
     # where uploaded images + Grad-CAM overlays are written (served statically)
     storage_dir: Path = field(default_factory=lambda: Path(os.getenv("STORAGE_DIR", str(REPO_ROOT / "backend" / "storage"))))
     cors_origins: List[str] = field(default_factory=lambda: os.getenv(
