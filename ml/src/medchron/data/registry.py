@@ -103,6 +103,20 @@ REGISTRY: Dict[str, DatasetSpec] = {
         notes="Image+mask pairs for ROI/preprocessing experiments.",
         recommended_for=["roi", "lung segmentation"],
     ),
+    # ---- Brain MRI classification (v2 multi-modality) ----
+    "brain_tumor_mri": DatasetSpec(
+        key="brain_tumor_mri",
+        name="Brain Tumor Classification (MRI)",
+        modality="Brain MRI",
+        task="classification",
+        access="kaggle",
+        roi_support=False,
+        approx_images="~3,264",
+        url="https://www.kaggle.com/datasets/sartajbhuvaji/brain-tumor-classification-mri",
+        notes="4-class (glioma / meningioma / pituitary / no tumor); no native patient IDs, "
+              "so splits are image-level rather than patient-level.",
+        recommended_for=["v2", "multi-modality"],
+    ),
 }
 
 

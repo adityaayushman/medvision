@@ -20,5 +20,7 @@ services:
         value: chest_xray
       - key: MODEL_CHECKPOINT
         value: /app/backend/model/model_efficientnet_b0.pt
+      - key: MODEL_CHECKPOINT_BRAIN_MRI
+        value: /app/backend/model/model_efficientnet_b0_brain_mri.pt
       - key: CORS_ORIGINS
         value: https://medchron-ai.vercel.app,http://localhost:3000

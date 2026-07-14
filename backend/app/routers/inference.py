@@ -49,11 +49,12 @@ def _png(img: np.ndarray) -> bytes:
 async def analyze(
     file: UploadFile = File(...),
     patient_id: Optional[int] = Form(None),
+    modality: Optional[str] = Form(None),
     analyzer: AnalyzerService = Depends(get_analyzer),
     session: Session = Depends(get_session),
 ) -> AnalyzeResponse:
     image = _decode(await file.read())
-    payload, result, overlay = analyzer.analyze(image)
+    payload, result, overlay = analyzer.analyze(image, modality=modality)
 
     meta = payload["processing_metadata"]
 

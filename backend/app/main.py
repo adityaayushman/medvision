@@ -57,5 +57,6 @@ def health() -> dict:
         "status": "ok",
         "model_loaded": analyzer.model_loaded,
         "modality": settings.modality,
+        "modalities": analyzer.available_modalities(),
         "disclaimer": "Research/educational software. Not for clinical use.",
     }
