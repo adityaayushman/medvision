@@ -1,9 +1,46 @@
+export interface QualityCheck {
+  name: string;
+  status: "ok" | "warn" | "fail";
+  detail: string;
+}
+
 export interface QualityReport {
   focus: number;
   brightness: number;
   contrast: number;
   passed: boolean;
   reasons: string[];
+  overall_score: number;
+  focus_score: number;
+  brightness_score: number;
+  contrast_score: number;
+  motion_blur_ratio: number;
+  motion_blur_detected: boolean;
+  checks: QualityCheck[];
+  recommendation: string;
+}
+
+export interface PipelineStep {
+  name: string;
+  status: "done" | "skipped" | "stopped";
+  detail: string;
+}
+
+export interface RoiConfidence {
+  overall_score: number;
+  overall_label: "High" | "Medium" | "Low";
+  per_roi: number[];
+  note: string;
+}
+
+export interface ProcessingMetadata {
+  preprocessing_ops: string[];
+  segmentation_success: boolean;
+  foreground_ratio: number;
+  roi_confidence: RoiConfidence | null;
+  processing_time_ms: number;
+  model_version: string | null;
+  inference_time_ms: number | null;
 }
 
 export interface ROI {
@@ -17,6 +54,8 @@ export interface Prediction {
   probabilities: Record<string, number>;
   backbone?: string;
   explained_class?: string;
+  model_version?: string;
+  inference_time_ms?: number;
 }
 
 export interface AnalyzeResponse {
@@ -31,6 +70,9 @@ export interface AnalyzeResponse {
   annotated_url: string;
   heatmap_url?: string | null;
   stages?: { name: string; url: string }[];
+  analysis_stopped: boolean;
+  pipeline_steps: PipelineStep[];
+  processing_metadata: ProcessingMetadata;
 }
 
 export interface Patient {
@@ -51,6 +93,9 @@ export interface StudyRead {
   modality: string;
   uploaded_at: string;
   quality_passed: boolean;
+  quality_score?: number | null;
+  analysis_stopped: boolean;
+  model_version?: string | null;
   num_rois: number;
   image_url: string;
   annotated_url?: string | null;

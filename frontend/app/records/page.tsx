@@ -75,12 +75,14 @@ export default function RecordsPage() {
               />
               <div className="p-4">
                 <div className="flex items-center justify-between gap-2">
-                  {s.prediction ? (
+                  {s.analysis_stopped ? (
+                    <span className="font-semibold text-bad">Analysis stopped</span>
+                  ) : s.prediction ? (
                     <span className="font-semibold capitalize">{s.prediction.label}</span>
                   ) : (
                     <span className="text-sm text-ink-3">Preprocessing only</span>
                   )}
-                  {s.prediction && (
+                  {s.prediction && !s.analysis_stopped && (
                     <span className="text-xs tabular-nums text-ink-3">
                       {pct(s.prediction.confidence)}
                     </span>
@@ -98,7 +100,7 @@ export default function RecordsPage() {
                     ) : (
                       <ShieldAlert className="h-3.5 w-3.5" />
                     )}
-                    {s.quality_passed ? "quality ok" : "flagged"}
+                    {s.quality_score != null ? `quality ${s.quality_score}/100` : s.quality_passed ? "quality ok" : "flagged"}
                   </span>
                   <span>·</span>
                   <span>{s.num_rois} ROI{s.num_rois === 1 ? "" : "s"}</span>

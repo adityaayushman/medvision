@@ -2,10 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Loader2, Upload, ShieldAlert, ShieldCheck, ScanLine } from "lucide-react";
+import { Loader2, Upload, ScanLine } from "lucide-react";
 import { analyze, listPatients } from "@/lib/api";
 import type { AnalyzeResponse, Patient } from "@/lib/types";
-import { cn, pct } from "@/lib/utils";
+import { pct } from "@/lib/utils";
+import { QualityScorePanel } from "@/components/QualityScorePanel";
+import { ProcessingTimeline } from "@/components/ProcessingTimeline";
+import { RoiViewer } from "@/components/RoiViewer";
+import { AnalysisStoppedBanner } from "@/components/AnalysisStoppedBanner";
+import { ProcessingMetadataPanel } from "@/components/ProcessingMetadataPanel";
 
 export default function AnalyzePage() {
   const [file, setFile] = useState<File | null>(null);
@@ -47,7 +52,7 @@ export default function AnalyzePage() {
         <h1 className="text-2xl font-bold">Analyze a scan</h1>
         <p className="text-sm text-ink-3">
           Upload a medical image. The pipeline runs quality assessment, enhancement,
-          ROI extraction and — if a model is trained — classification with Grad-CAM.
+          ROI extraction and — if the scan clears the quality gate — classification with Grad-CAM.
         </p>
       </div>
 
@@ -106,100 +111,101 @@ export default function AnalyzePage() {
               Results appear here.
             </div>
           ) : (
-            <Results result={result} />
+            <QuickSummary result={result} />
           )}
         </div>
       </div>
+
+      {result && (
+        <div className="space-y-4">
+          <ProcessingTimeline steps={result.pipeline_steps} />
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <QualityScorePanel quality={result.quality} />
+            <ProcessingMetadataPanel meta={result.processing_metadata} />
+          </div>
+
+          {result.analysis_stopped ? (
+            <AnalysisStoppedBanner quality={result.quality} />
+          ) : result.prediction ? (
+            <PredictionCard result={result} />
+          ) : (
+            <p className="rounded-lg bg-surface p-3 text-xs text-ink-3">
+              No trained model loaded — showing preprocessing only.
+            </p>
+          )}
+
+          {result.stages && result.stages.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-4">
+                Processing pipeline — interactive viewer
+              </p>
+              <RoiViewer stages={result.stages} />
+            </div>
+          )}
+
+          <Link href="/records" className="block text-center text-xs text-brand-600 hover:underline dark:text-brand-400">
+            Saved to records →
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
 
-function Results({ result }: { result: AnalyzeResponse }) {
+/** Compact panel next to the upload box — full detail lives below in the report. */
+function QuickSummary({ result }: { result: AnalyzeResponse }) {
   const q = result.quality;
   return (
-    <div className="space-y-5">
-      <div
-        className={cn(
-          "flex items-start gap-3 rounded-xl p-3 text-sm",
-          q.passed ? "chip-ok" : "chip-warn",
-        )}
-      >
-        {q.passed ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
-        <div>
-          <p className="font-semibold">Image quality: {q.passed ? "passed" : "flagged"}</p>
-          {q.reasons.length > 0 && <p className="text-xs">{q.reasons.join("; ")}</p>}
-          <p className="mt-1 text-xs opacity-80">
-            focus {q.focus.toFixed(0)} · brightness {q.brightness.toFixed(0)} · contrast{" "}
-            {q.contrast.toFixed(0)}
-          </p>
-        </div>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold uppercase tracking-wide text-ink-4">Quality score</span>
+        <span
+          className={`text-2xl font-bold tabular-nums ${q.passed ? "text-ok" : "text-bad"}`}
+        >
+          {q.overall_score}
+        </span>
       </div>
-
-      {result.prediction ? (
+      {result.analysis_stopped ? (
+        <p className="text-sm font-semibold text-bad">Analysis stopped — quality gate failed.</p>
+      ) : result.prediction ? (
         <div>
-          <div className="mb-1 flex items-baseline justify-between">
-            <span className="text-sm font-semibold uppercase tracking-wide text-ink-4">
-              Prediction
-            </span>
-            {result.prediction.backbone && (
-              <span className="text-xs text-ink-4">{result.prediction.backbone}</span>
-            )}
-          </div>
-          <p className="text-2xl font-bold capitalize">{result.prediction.label}</p>
-          <div className="mt-3 space-y-2">
-            {Object.entries(result.prediction.probabilities)
-              .sort((a, b) => b[1] - a[1])
-              .map(([label, p]) => (
-                <div key={label}>
-                  <div className="mb-0.5 flex justify-between text-xs">
-                    <span className="capitalize">{label}</span>
-                    <span>{pct(p)}</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-surface-2">
-                    <div className="h-full rounded-full bg-brand-500" style={{ width: pct(p) }} />
-                  </div>
-                </div>
-              ))}
-          </div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-4">Prediction</p>
+          <p className="text-xl font-bold capitalize">{result.prediction.label}</p>
+          <p className="text-xs text-ink-4">{pct(result.prediction.confidence)} confidence</p>
         </div>
       ) : (
-        <p className="rounded-lg bg-surface p-3 text-xs text-ink-3">
-          No trained model loaded — showing preprocessing only.
-        </p>
+        <p className="text-sm text-ink-3">Preprocessing only — no model loaded.</p>
       )}
-
-      {/* full DIP pipeline gallery */}
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-4">
-          Processing pipeline
-        </p>
-        {result.stages && result.stages.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {result.stages.map((s, i) => (
-              <Figure key={s.name} title={`${i + 1}. ${s.name}`} src={s.url} />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <Figure title={`ROIs (${result.num_rois})`} src={result.annotated_url} />
-            {result.heatmap_url && <Figure title="Grad-CAM" src={result.heatmap_url} />}
-          </div>
-        )}
-      </div>
-
-      <Link href="/records" className="block text-center text-xs text-brand-600 dark:text-brand-400 hover:underline">
-        Saved to records →
-      </Link>
+      <p className="text-xs text-ink-4">Full report below.</p>
     </div>
   );
 }
 
-function Figure({ title, src }: { title: string; src: string }) {
+function PredictionCard({ result }: { result: AnalyzeResponse }) {
+  const pred = result.prediction!;
   return (
-    <div>
-      <p className="mb-1 text-[11px] font-medium text-ink-4">{title}</p>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={title} className="aspect-square w-full rounded-lg border border-line object-cover" />
+    <div className="card p-5">
+      <div className="mb-1 flex items-baseline justify-between">
+        <span className="text-sm font-semibold uppercase tracking-wide text-ink-4">Prediction</span>
+        {pred.backbone && <span className="text-xs text-ink-4">{pred.backbone}</span>}
+      </div>
+      <p className="text-2xl font-bold capitalize">{pred.label}</p>
+      <div className="mt-3 space-y-2">
+        {Object.entries(pred.probabilities)
+          .sort((a, b) => b[1] - a[1])
+          .map(([label, p]) => (
+            <div key={label}>
+              <div className="mb-0.5 flex justify-between text-xs">
+                <span className="capitalize">{label}</span>
+                <span>{pct(p)}</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-surface-2">
+                <div className="h-full rounded-full bg-brand-500" style={{ width: pct(p) }} />
+              </div>
+            </div>
+          ))}
+      </div>
     </div>
   );
 }

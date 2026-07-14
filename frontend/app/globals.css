@@ -54,9 +54,14 @@
   --chip-warn-ink: #92400e;
   --chip-info-bg: rgba(2, 132, 199, 0.12);
   --chip-info-ink: #075985;
+  --chip-bad-bg: rgba(190, 18, 60, 0.12);
+  --chip-bad-ink: #9f1239;
   --note-warn-border: rgba(180, 83, 9, 0.28);
   --note-warn-bg: rgba(217, 119, 6, 0.08);
   --note-warn-ink: #92400e;
+  --note-bad-border: rgba(190, 18, 60, 0.28);
+  --note-bad-bg: rgba(190, 18, 60, 0.07);
+  --note-bad-ink: #9f1239;
 
   /* ambient background */
   --aur-1: rgba(47, 143, 255, 0.14);
@@ -110,9 +115,14 @@
   --chip-warn-ink: #fcd34d;
   --chip-info-bg: rgba(12, 74, 110, 0.35);
   --chip-info-ink: #7dd3fc;
+  --chip-bad-bg: rgba(136, 19, 55, 0.35);
+  --chip-bad-ink: #fda4af;
   --note-warn-border: rgba(251, 191, 36, 0.2);
   --note-warn-bg: rgba(251, 191, 36, 0.06);
   --note-warn-ink: rgba(253, 230, 138, 0.9);
+  --note-bad-border: rgba(251, 113, 133, 0.22);
+  --note-bad-bg: rgba(190, 18, 60, 0.1);
+  --note-bad-ink: rgba(253, 164, 175, 0.92);
 
   --aur-1: rgba(47, 143, 255, 0.2);
   --aur-2: rgba(56, 189, 248, 0.16);
@@ -264,10 +274,19 @@ body {
   background: var(--chip-info-bg);
   color: var(--chip-info-ink);
 }
+.chip-bad {
+  background: var(--chip-bad-bg);
+  color: var(--chip-bad-ink);
+}
 .note-warn {
   border: 1px solid var(--note-warn-border);
   background: var(--note-warn-bg);
   color: var(--note-warn-ink);
+}
+.note-bad {
+  border: 1px solid var(--note-bad-border);
+  background: var(--note-bad-bg);
+  color: var(--note-bad-ink);
 }
 
 /* ---- Text helpers ---- */

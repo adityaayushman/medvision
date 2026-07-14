@@ -40,6 +40,9 @@ class StudyRead(BaseModel):
     modality: str
     uploaded_at: datetime
     quality_passed: bool
+    quality_score: Optional[int] = None
+    analysis_stopped: bool = False
+    model_version: Optional[str] = None
     num_rois: int
     image_url: str
     annotated_url: Optional[str] = None
@@ -58,6 +61,9 @@ class AnalyzeResponse(BaseModel):
     annotated_url: str
     heatmap_url: Optional[str] = None
     stages: List[Dict] = []
+    analysis_stopped: bool = False
+    pipeline_steps: List[Dict] = []
+    processing_metadata: Dict = {}
 
 
 class DatasetSpecRead(BaseModel):
