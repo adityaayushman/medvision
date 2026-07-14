@@ -26,6 +26,10 @@ class Settings:
         "MODEL_CHECKPOINT_BRAIN_MRI",
         str(REPO_ROOT / "ml" / "artifacts" / "brain_mri" / "model_efficientnet_b0.pt"),
     )
+    model_checkpoint_mammography: str = os.getenv(
+        "MODEL_CHECKPOINT_MAMMOGRAPHY",
+        str(REPO_ROOT / "ml" / "artifacts" / "mammography" / "model_efficientnet_b0.pt"),
+    )
     # where uploaded images + Grad-CAM overlays are written (served statically)
     storage_dir: Path = field(default_factory=lambda: Path(os.getenv("STORAGE_DIR", str(REPO_ROOT / "backend" / "storage"))))
     cors_origins: List[str] = field(default_factory=lambda: os.getenv(

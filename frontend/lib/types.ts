@@ -113,6 +113,7 @@ export interface Health {
 export const MODALITY_LABELS: Record<string, string> = {
   chest_xray: "Chest X-ray",
   brain_mri: "Brain MRI",
+  mammography: "Mammography",
 };
 
 export interface DatasetSpec {
