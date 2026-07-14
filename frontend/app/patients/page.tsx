@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Loader2, UserPlus, ChevronRight } from "lucide-react";
+import { Loader2, UserPlus, ChevronRight, FileStack, Clock } from "lucide-react";
 import { createPatient, listPatients } from "@/lib/api";
 import type { Patient } from "@/lib/types";
 
@@ -89,14 +89,39 @@ export default function PatientsPage() {
         ) : (
           patients.map((p) => (
             <Link key={p.id} href={`/patients/${p.id}`}
-              className="flex items-center justify-between p-4 transition hover:bg-surface">
-              <div>
+              className="flex items-center justify-between gap-3 p-4 transition hover:bg-surface">
+              <div className="min-w-0">
                 <p className="font-medium">{p.name}</p>
                 <p className="text-xs text-ink-4">
                   {[p.sex, p.birth_year].filter(Boolean).join(" · ") || "—"}
                 </p>
               </div>
-              <ChevronRight className="h-4 w-4 text-ink-4" />
+              <div className="flex shrink-0 items-center gap-3">
+                {p.study_count > 0 ? (
+                  <>
+                    <span className="hidden items-center gap-1 text-xs text-ink-3 sm:inline-flex">
+                      <FileStack className="h-3.5 w-3.5" />
+                      {p.study_count} scan{p.study_count === 1 ? "" : "s"}
+                    </span>
+                    {p.last_study_at && (
+                      <span className="hidden items-center gap-1 text-xs text-ink-4 md:inline-flex">
+                        <Clock className="h-3.5 w-3.5" />
+                        {new Date(p.last_study_at).toLocaleDateString()}
+                      </span>
+                    )}
+                    {p.last_label && (
+                      <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium capitalize text-ink-2">
+                        {p.last_label}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] text-ink-4">
+                    No scans yet
+                  </span>
+                )}
+                <ChevronRight className="h-4 w-4 text-ink-4" />
+              </div>
             </Link>
           ))
         )}

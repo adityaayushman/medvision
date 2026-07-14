@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FileStack, Loader2, ScanLine, ShieldAlert, ShieldCheck } from "lucide-react";
-import { listStudies } from "@/lib/api";
-import type { StudyRead } from "@/lib/types";
+import { FileStack, Loader2, ScanLine, ShieldAlert, ShieldCheck, UserPlus } from "lucide-react";
+import { assignPatient, listPatients, listStudies } from "@/lib/api";
+import type { Patient, StudyRead } from "@/lib/types";
 import { cn, pct } from "@/lib/utils";
 
 export default function RecordsPage() {
   const [studies, setStudies] = useState<StudyRead[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,7 +18,13 @@ export default function RecordsPage() {
       .then(setStudies)
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load records"))
       .finally(() => setLoading(false));
+    listPatients().then(setPatients).catch(() => setPatients([]));
   }, []);
+
+  async function attach(studyId: number, patientId: number) {
+    const updated = await assignPatient(studyId, patientId);
+    setStudies((prev) => prev.map((s) => (s.id === studyId ? updated : s)));
+  }
 
   return (
     <div className="space-y-6">
@@ -32,7 +39,7 @@ export default function RecordsPage() {
       </div>
       <p className="max-w-2xl text-sm text-ink-3">
         Every scan run through the analyzer, newest first — across all patients
-        and unassigned ones.
+        and unassigned ones. {studies.length > 0 && `${studies.length} total.`}
       </p>
 
       {loading ? (
@@ -79,7 +86,7 @@ export default function RecordsPage() {
                     </span>
                   )}
                 </div>
-                <div className="mt-2 flex items-center gap-2 text-xs text-ink-4">
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-4">
                   <span
                     className={cn(
                       "inline-flex items-center gap-1",
@@ -95,15 +102,26 @@ export default function RecordsPage() {
                   </span>
                   <span>·</span>
                   <span>{s.num_rois} ROI{s.num_rois === 1 ? "" : "s"}</span>
-                  {s.patient_id && (
-                    <>
-                      <span>·</span>
-                      <Link href={`/patients/${s.patient_id}`} className="text-brand-600 dark:text-brand-400 hover:underline">
-                        patient #{s.patient_id}
-                      </Link>
-                    </>
+                </div>
+
+                <div className="mt-2">
+                  {s.patient_id ? (
+                    <Link
+                      href={`/patients/${s.patient_id}`}
+                      className="text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
+                    >
+                      {s.patient_name ?? `Patient #${s.patient_id}`}
+                    </Link>
+                  ) : patients.length > 0 ? (
+                    <AttachPicker
+                      patients={patients}
+                      onAttach={(pid) => attach(s.id, pid)}
+                    />
+                  ) : (
+                    <span className="text-xs text-ink-5">No patient attached</span>
                   )}
                 </div>
+
                 <p className="mt-2 text-[11px] text-ink-5">
                   {new Date(s.uploaded_at).toLocaleString()}
                 </p>
@@ -113,5 +131,45 @@ export default function RecordsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function AttachPicker({
+  patients,
+  onAttach,
+}: {
+  patients: Patient[];
+  onAttach: (patientId: number) => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <label className="inline-flex items-center gap-1.5 text-xs text-ink-4">
+      <UserPlus className="h-3.5 w-3.5" />
+      <select
+        disabled={busy}
+        defaultValue=""
+        onChange={async (e) => {
+          const pid = Number(e.target.value);
+          if (!pid) return;
+          setBusy(true);
+          try {
+            await onAttach(pid);
+          } finally {
+            setBusy(false);
+          }
+        }}
+        className="rounded-md border border-line bg-surface px-1.5 py-0.5 text-xs text-ink-3"
+      >
+        <option value="" disabled>
+          {busy ? "Attaching…" : "Attach to patient…"}
+        </option>
+        {patients.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.name}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

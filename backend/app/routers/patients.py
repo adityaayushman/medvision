@@ -24,17 +24,38 @@ def create_patient(body: PatientCreate, session: Session = Depends(get_session))
     return patient
 
 
+def _patient_to_read(patient: Patient, session: Session) -> PatientRead:
+    studies = session.exec(
+        select(Study).where(Study.patient_id == patient.id).order_by(Study.uploaded_at.desc())
+    ).all()
+    last_label = None
+    if studies:
+        pred = session.exec(select(Prediction).where(Prediction.study_id == studies[0].id)).first()
+        last_label = pred.label if pred else None
+    return PatientRead(
+        id=patient.id,
+        name=patient.name,
+        sex=patient.sex,
+        birth_year=patient.birth_year,
+        created_at=patient.created_at,
+        study_count=len(studies),
+        last_study_at=studies[0].uploaded_at if studies else None,
+        last_label=last_label,
+    )
+
+
 @router.get("", response_model=List[PatientRead])
 def list_patients(session: Session = Depends(get_session)):
-    return session.exec(select(Patient).order_by(Patient.created_at.desc())).all()
+    patients = session.exec(select(Patient).order_by(Patient.created_at.desc())).all()
+    return [_patient_to_read(p, session) for p in patients]
 
 
 @router.get("/{patient_id}", response_model=PatientRead)
-def get_patient(patient_id: int, session: Session = Depends(get_session)) -> Patient:
+def get_patient(patient_id: int, session: Session = Depends(get_session)):
     patient = session.get(Patient, patient_id)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
-    return patient
+    return _patient_to_read(patient, session)
 
 
 def _study_to_read(study: Study, session: Session) -> StudyRead:
@@ -56,9 +77,14 @@ def _study_to_read(study: Study, session: Session) -> StudyRead:
             backbone=pred.backbone,
             heatmap_url=url("gradcam"),
         )
+    patient_name = None
+    if study.patient_id:
+        patient = session.get(Patient, study.patient_id)
+        patient_name = patient.name if patient else None
     return StudyRead(
         id=study.id,
         patient_id=study.patient_id,
+        patient_name=patient_name,
         modality=study.modality,
         uploaded_at=study.uploaded_at,
         quality_passed=study.quality_passed,

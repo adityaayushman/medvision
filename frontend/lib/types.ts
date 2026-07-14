@@ -39,11 +39,15 @@ export interface Patient {
   sex?: string | null;
   birth_year?: number | null;
   created_at: string;
+  study_count: number;
+  last_study_at?: string | null;
+  last_label?: string | null;
 }
 
 export interface StudyRead {
   id: number;
   patient_id?: number | null;
+  patient_name?: string | null;
   modality: string;
   uploaded_at: string;
   quality_passed: boolean;
