@@ -48,6 +48,12 @@ export interface ROI {
   area: number;
 }
 
+export interface EnsembleMember {
+  backbone: string;
+  label: string;
+  confidence: number;
+}
+
 export interface Prediction {
   label: string;
   confidence: number;
@@ -57,6 +63,7 @@ export interface Prediction {
   model_version?: string;
   inference_time_ms?: number;
   heatmap_url?: string | null;
+  per_model?: EnsembleMember[] | null;
 }
 
 export interface AnalyzeResponse {
@@ -137,7 +144,13 @@ export interface ReportRead {
   model_version?: string | null;
   processing_time_ms?: number | null;
   inference_time_ms?: number | null;
-  prediction: { label: string; confidence: number; probabilities: Record<string, number>; backbone?: string } | null;
+  prediction: {
+    label: string;
+    confidence: number;
+    probabilities: Record<string, number>;
+    backbone?: string;
+    per_model?: EnsembleMember[] | null;
+  } | null;
   disclaimer: string;
 }
 

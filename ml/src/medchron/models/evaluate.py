@@ -193,3 +193,85 @@ def evaluate_checkpoint(
     print(json.dumps({k: v for k, v in metrics.items() if k != "confusion_matrix"}, indent=2))
     print(f"Saved metrics + plots -> {out}")
     return metrics
+
+
+def evaluate_ensemble(
+    ckpt_paths: Sequence[str],
+    samples: Sequence[Sample],
+    *,
+    split: str = "test",
+    batch_size: int = 16,
+    out_dir: Optional[str] = None,
+    device: Optional[str] = None,
+) -> Dict:
+    """Soft-votes (averages softmax/sigmoid probabilities) across several
+    checkpoints trained on the same manifest/split, then reuses the same
+    metric computation as evaluate_checkpoint — directly comparable to a
+    single-model metrics.json."""
+    from .train import resolve_device
+    device = resolve_device(device or "auto")
+
+    models = []
+    class_to_idx: Optional[Dict[str, int]] = None
+    preprocess: Optional[PreprocessConfig] = None
+    task = "multiclass"
+    label_delim = "|"
+    for ckpt_path in ckpt_paths:
+        ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
+        mcfg = ModelConfig(**ckpt["model_config"])
+        mcfg.pretrained = False
+        model = create_model(mcfg).to(device)
+        model.load_state_dict(ckpt["state_dict"])
+        models.append(model)
+
+        ckpt_class_to_idx = ckpt["class_to_idx"]
+        if class_to_idx is None:
+            class_to_idx = ckpt_class_to_idx
+            preprocess = PreprocessConfig(**ckpt.get("preprocess", {}))
+            task = ckpt.get("task", "multiclass")
+            label_delim = ckpt.get("train_config", {}).get("label_delim", "|")
+        elif ckpt_class_to_idx != class_to_idx:
+            raise ValueError(
+                f"Checkpoint {ckpt_path} has a different class_to_idx than the first "
+                f"member ({ckpt_class_to_idx} vs {class_to_idx}) — ensemble members "
+                "must share the same label space."
+            )
+
+    class_names = [name for name, _ in sorted(class_to_idx.items(), key=lambda kv: kv[1])]
+
+    bundle = build_dataloaders(
+        samples, preprocess=preprocess, batch_size=batch_size, task=task, label_delim=label_delim
+    )
+    if split not in bundle.loaders:
+        raise ValueError(f"No '{split}' samples to evaluate.")
+
+    out = Path(out_dir) if out_dir else Path(ckpt_paths[0]).parent
+    out.mkdir(parents=True, exist_ok=True)
+
+    if task == "multilabel":
+        y_true, probs_sum = None, None
+        for model in models:
+            yt, probs = collect_predictions_multilabel(model, bundle.loaders[split], device)
+            y_true = yt
+            probs_sum = probs if probs_sum is None else probs_sum + probs
+        y_prob = probs_sum / len(models)
+        metrics = compute_multilabel_metrics(y_true, y_prob, class_names)
+        (out / "metrics.json").write_text(json.dumps(metrics, indent=2))
+        print(json.dumps({k: v for k, v in metrics.items() if k != "per_class"}, indent=2))
+        print(f"Saved ensemble metrics -> {out}")
+        return metrics
+
+    y_true, probs_sum = None, None
+    for model in models:
+        yt, _, probs = collect_predictions(model, bundle.loaders[split], device)
+        y_true = yt
+        probs_sum = probs if probs_sum is None else probs_sum + probs
+    y_prob = probs_sum / len(models)
+    y_pred = y_prob.argmax(axis=1)
+    metrics = compute_metrics(y_true, y_pred, y_prob, class_names)
+    (out / "metrics.json").write_text(json.dumps(metrics, indent=2))
+    _save_plots(y_true, y_prob, np.array(metrics["confusion_matrix"]), class_names, out)
+
+    print(json.dumps({k: v for k, v in metrics.items() if k != "confusion_matrix"}, indent=2))
+    print(f"Saved ensemble metrics + plots -> {out}")
+    return metrics

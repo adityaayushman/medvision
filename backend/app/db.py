@@ -38,6 +38,10 @@ _NEW_PATIENT_COLUMNS = [
     ("org_id", "INTEGER"),
 ]
 
+_NEW_PREDICTION_COLUMNS = [
+    ("per_model", "VARCHAR"),
+]
+
 
 def _migrate_study_columns() -> None:
     for name, sql_type in _NEW_STUDY_COLUMNS:
@@ -57,11 +61,21 @@ def _migrate_patient_columns() -> None:
             pass
 
 
+def _migrate_prediction_columns() -> None:
+    for name, sql_type in _NEW_PREDICTION_COLUMNS:
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE prediction ADD COLUMN {name} {sql_type}"))
+        except Exception:
+            pass
+
+
 def init_db() -> None:
     from . import models_db
     SQLModel.metadata.create_all(engine)
     _migrate_study_columns()
     _migrate_patient_columns()
+    _migrate_prediction_columns()
 
 
 def get_session():

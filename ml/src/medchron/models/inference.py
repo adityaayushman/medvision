@@ -4,7 +4,7 @@ from __future__ import annotations
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import cv2
 import numpy as np
@@ -26,6 +26,7 @@ class Predictor:
 
         self.model_config = ModelConfig(**ckpt["model_config"])
         self.model_config.pretrained = False
+        self.backbone = self.model_config.backbone
         self.model = create_model(self.model_config).to(self.device)
         self.model.load_state_dict(ckpt["state_dict"])
         self.model.eval()
@@ -85,3 +86,73 @@ class Predictor:
         if image is None:
             raise FileNotFoundError(f"Could not read image: {path}")
         return self.predict(image)
+
+
+class EnsemblePredictor:
+    """Soft-votes across several single-backbone Predictors trained on the
+    same manifest/split. Grad-CAM comes from the first (primary) member only —
+    averaging heatmaps across architecturally different models isn't a
+    well-defined operation, so this doesn't invent one."""
+
+    def __init__(self, ckpt_paths: Sequence[str], device: Optional[torch.device] = None) -> None:
+        if len(ckpt_paths) < 2:
+            raise ValueError("EnsemblePredictor needs at least 2 checkpoints")
+        self.members: List[Predictor] = [Predictor(p, device=device) for p in ckpt_paths]
+
+        primary = self.members[0]
+        for m in self.members[1:]:
+            if m.class_to_idx != primary.class_to_idx:
+                raise ValueError(
+                    f"Ensemble members disagree on class_to_idx: "
+                    f"{primary.class_to_idx} vs {m.class_to_idx}"
+                )
+        self.class_to_idx = primary.class_to_idx
+        self.idx_to_class = primary.idx_to_class
+        self.model_config = primary.model_config  # for callers that need e.g. gradcam target layer info
+        self.backbone = "ensemble"
+
+        backbones = ", ".join(m.backbone for m in self.members)
+        self.model_version = f"ensemble({backbones})"
+
+    def _format(self, probs: np.ndarray, per_model: List[Dict]) -> Dict:
+        idx = int(probs.argmax())
+        return {
+            "label": self.idx_to_class[idx],
+            "confidence": float(probs[idx]),
+            "probabilities": {self.idx_to_class[i]: float(p) for i, p in enumerate(probs)},
+            "per_model": per_model,
+        }
+
+    def predict(self, image_bgr: np.ndarray) -> Dict:
+        per_model = []
+        probs_sum = None
+        for m in self.members:
+            single = m.predict(image_bgr)
+            per_model.append({
+                "backbone": m.backbone,
+                "label": single["label"],
+                "confidence": single["confidence"],
+            })
+            p = np.array([single["probabilities"][self.idx_to_class[i]] for i in range(len(self.idx_to_class))])
+            probs_sum = p if probs_sum is None else probs_sum + p
+        avg_probs = probs_sum / len(self.members)
+        return self._format(avg_probs, per_model)
+
+    def explain(
+        self, image_bgr: np.ndarray, class_idx: Optional[int] = None
+    ) -> Tuple[np.ndarray, Dict]:
+        t0 = time.perf_counter()
+        result = self.predict(image_bgr)
+        # Explain the ENSEMBLE's predicted class, not whatever the primary
+        # member alone would have argmax'd to — otherwise the Grad-CAM overlay
+        # could visualize a different class than the one reported as the
+        # prediction when the primary model disagrees with the vote.
+        ensemble_idx = class_idx if class_idx is not None else self.class_to_idx[result["label"]]
+        primary = self.members[0]
+        overlay, primary_pred = primary.explain(image_bgr, ensemble_idx)
+        inference_time_ms = round((time.perf_counter() - t0) * 1000, 1)
+
+        result["explained_class"] = primary_pred["explained_class"]
+        result["model_version"] = self.model_version
+        result["inference_time_ms"] = inference_time_ms
+        return overlay, result

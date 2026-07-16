@@ -82,6 +82,7 @@ def _study_to_read(study: Study, session: Session) -> StudyRead:
             probabilities=json.loads(pred.probabilities),
             backbone=pred.backbone,
             heatmap_url=url("gradcam"),
+            per_model=json.loads(pred.per_model) if pred.per_model else None,
         )
     patient_name = None
     if study.patient_id:

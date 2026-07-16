@@ -32,6 +32,7 @@ class PredictionRead(BaseModel):
     probabilities: Dict[str, float]
     backbone: str = ""
     heatmap_url: Optional[str] = None
+    per_model: Optional[List[Dict]] = None
 
 
 class StudyRead(BaseModel):
@@ -83,6 +84,7 @@ class ReportPrediction(BaseModel):
     confidence: float
     probabilities: Dict[str, float]
     backbone: str = ""
+    per_model: Optional[List[Dict]] = None
 
 
 class ReportPatient(BaseModel):

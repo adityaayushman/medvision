@@ -224,6 +224,23 @@ function PredictionCard({ result }: { result: AnalyzeResponse }) {
             </div>
           ))}
       </div>
+      {pred.per_model && pred.per_model.length > 0 && (
+        <div className="mt-4 border-t border-line pt-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-4">
+            Model agreement
+          </p>
+          <div className="space-y-1.5">
+            {pred.per_model.map((m) => (
+              <div key={m.backbone} className="flex items-center justify-between text-xs">
+                <span className="text-ink-3">{m.backbone}</span>
+                <span className="capitalize">
+                  {m.label} <span className="text-ink-4">({pct(m.confidence)})</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -104,6 +104,7 @@ def _analyze_and_persist(
             probabilities=json.dumps(pred["probabilities"]),
             backbone=pred.get("backbone", ""),
             heatmap_path=heatmap_url,
+            per_model=json.dumps(pred["per_model"]) if pred.get("per_model") else None,
         ))
         session.commit()
 

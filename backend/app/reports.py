@@ -69,6 +69,7 @@ def build_report_data(study: Study, session: Session) -> dict:
             "confidence": pred.confidence,
             "probabilities": json.loads(pred.probabilities or "{}"),
             "backbone": pred.backbone,
+            "per_model": json.loads(pred.per_model) if pred.per_model else None,
         } if pred else None,
         "disclaimer": DISCLAIMER,
     }
@@ -159,6 +160,14 @@ def render_report_pdf(report: dict, session: Session) -> bytes:
                 )
             ]
             story.append(_kv_table(prob_rows, header=True))
+        if pred.get("per_model"):
+            story.append(Spacer(1, 8))
+            story.append(Paragraph("Model agreement (ensemble members)", sub_style))
+            member_rows = [["Backbone", "Predicted", "Confidence"]] + [
+                [m["backbone"], m["label"], f"{m['confidence'] * 100:.1f}%"]
+                for m in pred["per_model"]
+            ]
+            story.append(_kv_table(member_rows, header=True))
     else:
         story.append(Paragraph("No prediction available for this study.", body_style))
 
