@@ -17,6 +17,7 @@ const LINKS = [
 
 export function Navbar() {
   const pathname = usePathname();
+  if (pathname.startsWith("/dashboard")) return null;
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-page/70 backdrop-blur-xl">
       <nav className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3">
