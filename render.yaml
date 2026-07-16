@@ -21,17 +21,17 @@ services:
       - key: MODEL_CHECKPOINT
         value: /app/backend/model/model_efficientnet_b0.pt
       - key: MODEL_CHECKPOINT_BRAIN_MRI
-        # 2-way ensemble (soft-voted): beats the single EfficientNet-B0 baseline
-        # on every metric on the held-out test split (84.9% vs 82.0% accuracy,
-        # macro F1 0.849 vs 0.819, ROC-AUC 0.966 vs 0.956) — see ml/artifacts/
-        # brain_mri_2way_effnet_dense/metrics.json vs ml/artifacts/brain_mri/metrics.json.
-        # NOTE: the 3-way ensemble (+ResNet50, the heaviest checkpoint at ~94MB)
-        # scored higher (87.1%/0.870/0.973) but OOM'd this free-tier 512MB
-        # instance on deploy -- dropped to 2-way to actually fit. ResNet50 stays
-        # available locally (MODEL_CHECKPOINT_BRAIN_MRI's local default in
-        # config.py still auto-discovers all three) for testing on a machine
-        # with more RAM, or if this service is ever upgraded off the free tier.
-        value: /app/backend/model/model_efficientnet_b0_brain_mri.pt,/app/backend/model/model_densenet121_brain_mri.pt
+        # Rolled back to single-model: both the 3-way and 2-way ensembles
+        # (see git log) crashed/crash-looped this free-tier 512MB instance
+        # under real repeated requests -- confirmed via Render's deploy logs
+        # (explicit OOM on 3-way) and live testing (2-way completed one
+        # 30-40s request, then the worker died and 502'd on the next one).
+        # The ensemble capability (EnsemblePredictor, evaluate_ensemble)
+        # stays in the codebase and works correctly -- it's genuinely a
+        # resource ceiling, not a bug -- so it's revisitable on a paid plan
+        # or a lighter pairing, evaluated for both accuracy AND memory/
+        # latency next time before deploying, not just accuracy.
+        value: /app/backend/model/model_efficientnet_b0_brain_mri.pt
       - key: MODEL_CHECKPOINT_MAMMOGRAPHY
         value: /app/backend/model/model_efficientnet_b0_mammography.pt
       - key: CORS_ORIGINS
