@@ -54,22 +54,19 @@ def test_sample_level_stratified_split_keeps_all_samples():
     dist = split_distribution(result)
     assert set(dist) == {"train", "val", "test"}
     assert sum(sum(c.values()) for c in dist.values()) == 100
-    # both classes represented in every split (stratification worked)
     for split in ("train", "val", "test"):
         assert set(dist[split]) == {"normal", "pneumonia"}
 
 
 def test_patient_grouping_prevents_leakage():
-    # 10 patients, 5 images each; label is per-patient so grouping is meaningful
     samples = []
     for p in range(10):
         label = "normal" if p < 5 else "pneumonia"
         for k in range(5):
             samples.append(Sample(f"p{p}_{k}.png", label, patient_id=f"P{p}"))
     result = stratified_split(samples, val_size=0.2, test_size=0.2, seed=7)
-    assert_no_patient_leakage(result)  # raises if a patient crosses splits
+    assert_no_patient_leakage(result) 
 
-    # every image of a patient shares one split
     by_patient = {}
     for s in result:
         by_patient.setdefault(s.patient_id, set()).add(s.split)
@@ -95,7 +92,7 @@ def test_multilabel_class_index_builds_vocab_from_delimited_labels():
     ]
     idx = build_multilabel_class_index(samples)
     assert set(idx) == {"Cardiomegaly", "Effusion", "No Finding", "Atelectasis"}
-    # deterministic (sorted) regardless of input order
+   
     assert idx == build_multilabel_class_index(list(reversed(samples)))
 
 

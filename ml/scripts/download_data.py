@@ -16,7 +16,6 @@ from pathlib import Path
 
 from medchron.data import REGISTRY, get_spec
 
-# registry key -> Kaggle dataset ref (owner/slug)
 KAGGLE_REFS = {
     "rsna_pneumonia": "parin30/rsna-pneumonia-detection",
     "nih_cxr14": "nih-chest-xrays/data",
@@ -33,7 +32,7 @@ def _authenticate():
         api = KaggleApi()
         api.authenticate()
         return api
-    except Exception as exc:  # missing / invalid kaggle.json
+    except Exception as exc: 
         sys.exit(
             f"Kaggle authentication failed: {exc}\n"
             "Set up credentials first — see docs/KAGGLE_SETUP.md"

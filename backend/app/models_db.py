@@ -1,11 +1,3 @@
-"""Database tables — the longitudinal patient record ("Digital Twin").
-
-A Patient has many Studies (scans over time); each Study has one Prediction.
-This is what turns MedChron from a one-shot classifier into a monitoring tool.
-
-NOTE: no ``from __future__ import annotations`` here — it stringifies the
-Relationship type hints and breaks SQLModel's forward-reference resolution.
-"""
 
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -29,7 +21,6 @@ class Patient(SQLModel, table=True):
 
 
 class Study(SQLModel, table=True):
-    """One uploaded scan and its preprocessing outcome."""
 
     id: Optional[int] = Field(default=None, primary_key=True)
     patient_id: Optional[int] = Field(default=None, foreign_key="patient.id", index=True)
@@ -38,13 +29,9 @@ class Study(SQLModel, table=True):
     uploaded_at: datetime = Field(default_factory=_utcnow)
 
     quality_passed: bool = True
-    quality_reasons: str = ""     # semicolon-joined
+    quality_reasons: str = ""
     num_rois: int = 0
 
-    # research-grade processing metadata (nullable: absent on studies analyzed
-    # before these fields existed — every field here must be Optional, since the
-    # live column was added via ALTER TABLE without NOT NULL and can hold NULL
-    # on pre-existing rows)
     quality_score: Optional[int] = None
     analysis_stopped: Optional[bool] = False
     model_version: Optional[str] = None
@@ -57,12 +44,10 @@ class Study(SQLModel, table=True):
 
 
 class StudyImage(SQLModel, table=True):
-    """A pipeline-stage image stored in the DB (bytes), so it survives restarts
-    on hosts with an ephemeral disk. Served via GET /api/image/{id}."""
 
     id: Optional[int] = Field(default=None, primary_key=True)
     study_id: Optional[int] = Field(default=None, foreign_key="study.id", index=True)
-    name: str = Field(index=True)  # original | enhanced | segmentation | rois | gradcam
+    name: str = Field(index=True)
     data: bytes = Field(sa_column=Column(LargeBinary))
     created_at: datetime = Field(default_factory=_utcnow)
 
@@ -72,7 +57,7 @@ class Prediction(SQLModel, table=True):
     study_id: Optional[int] = Field(default=None, foreign_key="study.id", index=True)
     label: str
     confidence: float
-    probabilities: str = "{}"     # JSON string
+    probabilities: str = "{}"
     backbone: str = ""
     heatmap_path: Optional[str] = None
     created_at: datetime = Field(default_factory=_utcnow)

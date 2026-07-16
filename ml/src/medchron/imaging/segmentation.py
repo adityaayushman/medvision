@@ -1,4 +1,3 @@
-"""Thresholding-based segmentation and morphological mask cleanup."""
 
 from __future__ import annotations
 
@@ -15,7 +14,6 @@ def _odd(value: int) -> int:
 
 
 def segment(enhanced: np.ndarray, cfg: PreprocessConfig) -> np.ndarray:
-    """Produce a binary foreground mask from the enhanced grayscale image."""
     if cfg.threshold_method == "otsu":
         _, mask = cv2.threshold(
             enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
@@ -23,7 +21,7 @@ def segment(enhanced: np.ndarray, cfg: PreprocessConfig) -> np.ndarray:
         return mask
     if cfg.threshold_method == "adaptive_mean":
         method = cv2.ADAPTIVE_THRESH_MEAN_C
-    else:  # adaptive_gaussian
+    else:
         method = cv2.ADAPTIVE_THRESH_GAUSSIAN_C
     return cv2.adaptiveThreshold(
         enhanced,
@@ -36,7 +34,6 @@ def segment(enhanced: np.ndarray, cfg: PreprocessConfig) -> np.ndarray:
 
 
 def clean_mask(mask: np.ndarray, cfg: PreprocessConfig) -> np.ndarray:
-    """Remove speckle / close gaps in the mask via morphology."""
     if cfg.morph_op == "none":
         return mask
     kernel = np.ones((cfg.morph_ksize, cfg.morph_ksize), np.uint8)

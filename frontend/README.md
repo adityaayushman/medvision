@@ -9,7 +9,7 @@ Grad-CAM, and browse a patient's study timeline.
 
 ```bash
 npm install
-npm run dev          # http://localhost:3000
+npm run dev        
 ```
 
 The dev server proxies `/api/*` and `/static/*` to the FastAPI backend

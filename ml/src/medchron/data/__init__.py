@@ -1,4 +1,3 @@
-"""Dataset layer: registry, manifests, and leakage-safe splitting."""
 
 from .manifest import (
     LABEL_DELIM,

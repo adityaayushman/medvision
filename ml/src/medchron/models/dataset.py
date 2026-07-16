@@ -1,16 +1,3 @@
-"""Torch ``Dataset`` / ``DataLoader`` built on top of a MedChron manifest.
-
-Each item runs the fast DIP enhancement path (denoise + CLAHE) before handing a
-normalised tensor to the backbone, so the model always sees the *enhanced* image
-— the same preprocessing the rest of the platform uses.
-
-Supports two label regimes:
-  * ``multiclass`` — one label per image (e.g. RSNA: normal vs pneumonia).
-    ``Sample.label`` is a single class name; the target is a class index.
-  * ``multilabel`` — several simultaneous findings per image (e.g. NIH
-    ChestX-ray14). ``Sample.label`` holds delimiter-separated findings (e.g.
-    ``"Cardiomegaly|Effusion"``); the target is a multi-hot float vector.
-"""
 
 from __future__ import annotations
 
@@ -36,7 +23,6 @@ Task = Literal["multiclass", "multilabel"]
 
 
 def build_transforms(train: bool, input_size: int = 224) -> transforms.Compose:
-    """Augmentation for train (mild — laterality-preserving) vs. plain eval."""
     if train:
         return transforms.Compose(
             [
@@ -52,11 +38,6 @@ def build_transforms(train: bool, input_size: int = 224) -> transforms.Compose:
 
 
 class MedChronDataset(Dataset):
-    """Serves ``(tensor, target)`` pairs from a list of :class:`Sample`.
-
-    ``target`` is a class-index (long) for ``task="multiclass"`` or a
-    multi-hot vector (float) for ``task="multilabel"``.
-    """
 
     def __init__(
         self,
@@ -92,19 +73,17 @@ class MedChronDataset(Dataset):
         image = cv2.imread(s.path, cv2.IMREAD_COLOR)
         if image is None:
             raise FileNotFoundError(f"Could not read image: {s.path}")
-        rgb = model_image(image, self.cfg)          # HxWx3 uint8, enhanced
+        rgb = model_image(image, self.cfg)
         tensor = self.tf(Image.fromarray(rgb))
         return tensor, self._target(s.label)
 
 
 def build_class_index(samples: Sequence[Sample]) -> Dict[str, int]:
-    """Deterministic label -> index mapping (sorted for reproducibility)."""
     labels = sorted({s.label for s in samples})
     return {label: i for i, label in enumerate(labels)}
 
 
 def class_weights(samples: Sequence[Sample], class_to_idx: Dict[str, int]) -> torch.Tensor:
-    """Inverse-frequency weights for ``CrossEntropyLoss`` to counter imbalance."""
     counts = Counter(s.label for s in samples)
     total = sum(counts.values())
     n_classes = len(class_to_idx)
@@ -118,11 +97,6 @@ def class_weights(samples: Sequence[Sample], class_to_idx: Dict[str, int]) -> to
 def multilabel_pos_weights(
     samples: Sequence[Sample], class_to_idx: Dict[str, int], delim: str = LABEL_DELIM
 ) -> torch.Tensor:
-    """Per-class ``pos_weight`` for ``BCEWithLogitsLoss``: #negatives / #positives.
-
-    Counters a common multi-label pattern (each finding present in a small
-    minority of images) by up-weighting positive examples of rare findings.
-    """
     n = len(samples)
     pos_counts: Counter = Counter()
     for s in samples:
@@ -141,7 +115,7 @@ def multilabel_pos_weights(
 class LoaderBundle:
     loaders: Dict[str, DataLoader]
     class_to_idx: Dict[str, int]
-    class_weights: torch.Tensor  # CE class weights (multiclass) or BCE pos_weight (multilabel)
+    class_weights: torch.Tensor
 
 
 def build_dataloaders(
@@ -153,7 +127,6 @@ def build_dataloaders(
     task: Task = "multiclass",
     label_delim: str = LABEL_DELIM,
 ) -> LoaderBundle:
-    """Split samples by their ``.split`` field into train/val/test loaders."""
     if task == "multilabel":
         class_to_idx = build_multilabel_class_index(samples, delim=label_delim)
     else:

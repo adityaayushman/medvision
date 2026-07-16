@@ -1,4 +1,3 @@
-"""Serve pipeline-stage images stored in the database (survives ephemeral disks)."""
 
 from __future__ import annotations
 

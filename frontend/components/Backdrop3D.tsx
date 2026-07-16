@@ -5,10 +5,6 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useTheme } from "./theme";
 
-/* Global ambient 3D scene rendered behind every page:
-   a slowly drifting particle field + floating wireframe polyhedra,
-   with gentle mouse parallax. Theme-aware colours; static under
-   prefers-reduced-motion. Kept deliberately sparse so text stays legible. */
 
 type Palette = {
   particle: string;
@@ -42,9 +38,9 @@ function Particles({ palette, animate }: { palette: Palette; animate: boolean })
     const N = 850;
     const arr = new Float32Array(N * 3);
     for (let i = 0; i < N; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 26;      // x: wide
-      arr[i * 3 + 1] = (Math.random() - 0.5) * 15;  // y
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 10;  // z: depth
+      arr[i * 3] = (Math.random() - 0.5) * 26;      
+      arr[i * 3 + 1] = (Math.random() - 0.5) * 15;  
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 10;  
     }
     return { positions: arr, count: N };
   }, []);
@@ -60,7 +56,6 @@ function Particles({ palette, animate }: { palette: Palette; animate: boolean })
 
   useFrame((state, delta) => {
     if (!group.current || !animate) return;
-    // slow drift + parallax easing toward the pointer
     group.current.rotation.y += delta * 0.012;
     group.current.rotation.x = THREE.MathUtils.lerp(
       group.current.rotation.x, mouse.current.y * 0.06, 0.02);

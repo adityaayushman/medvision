@@ -1,4 +1,3 @@
-"""Patient records + per-patient study timeline (the Digital Twin surface)."""
 
 from __future__ import annotations
 
@@ -89,8 +88,6 @@ def _study_to_read(study: Study, session: Session) -> StudyRead:
         uploaded_at=study.uploaded_at,
         quality_passed=study.quality_passed,
         quality_score=study.quality_score,
-        # NULL on studies analyzed before this column existed — treat as
-        # "not stopped" (the previous universal behavior), not a validation error.
         analysis_stopped=bool(study.analysis_stopped),
         model_version=study.model_version,
         num_rois=study.num_rois,
@@ -102,7 +99,6 @@ def _study_to_read(study: Study, session: Session) -> StudyRead:
 
 @router.get("/{patient_id}/timeline", response_model=List[StudyRead])
 def patient_timeline(patient_id: int, session: Session = Depends(get_session)):
-    """Chronological studies for a patient — the disease-monitoring view."""
     if not session.get(Patient, patient_id):
         raise HTTPException(status_code=404, detail="Patient not found")
     studies = session.exec(

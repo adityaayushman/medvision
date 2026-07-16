@@ -1,10 +1,3 @@
-"""Train / validation / test splitting with leakage protection.
-
-In medical imaging the #1 silent bug is **patient leakage**: two X-rays of the
-same patient landing in both train and test, which inflates accuracy and makes
-the model look far better than it is. When patient ids are present we split at
-the *patient* level; otherwise we fall back to sample-level stratification.
-"""
 
 from __future__ import annotations
 
@@ -18,11 +11,6 @@ from .manifest import Sample
 
 
 def _three_way(keys: List[Hashable], label_of: Dict, val_size: float, test_size: float, seed: int):
-    """Stratified train/val/test over ``keys``; degrade gracefully to random.
-
-    Stratification is applied only when every class has at least two members in
-    the pool being split (a requirement of ``train_test_split(stratify=...)``).
-    """
 
     def _split(ks: List[Hashable], frac: float):
         if frac <= 0 or len(ks) < 2:
@@ -32,7 +20,6 @@ def _three_way(keys: List[Hashable], label_of: Dict, val_size: float, test_size:
         return train_test_split(ks, test_size=frac, random_state=seed, stratify=stratify)
 
     train_keys, test_keys = _split(keys, test_size)
-    # val fraction is relative to what remains after removing the test portion
     val_rel = 0.0 if (1 - test_size) <= 0 else val_size / (1 - test_size)
     train_keys, val_keys = _split(train_keys, val_rel)
     return set(train_keys), set(val_keys), set(test_keys)
@@ -46,12 +33,6 @@ def stratified_split(
     seed: int = 42,
     group_by_patient: bool = True,
 ) -> List[Sample]:
-    """Return copies of ``samples`` with ``.split`` set to train/val/test.
-
-    If ``group_by_patient`` and patient ids are available, all images of a
-    patient are kept together and patients are stratified by their majority
-    label — so classes stay balanced *and* no patient crosses splits.
-    """
     out = [copy.copy(s) for s in samples]
     have_patients = group_by_patient and all(s.patient_id for s in out)
 
@@ -76,7 +57,6 @@ def stratified_split(
 
 
 def assert_no_patient_leakage(samples: List[Sample]) -> None:
-    """Raise if any patient id appears in more than one split (defensive check)."""
     seen: Dict[str, str] = {}
     for s in samples:
         if not s.patient_id:

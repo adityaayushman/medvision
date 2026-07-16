@@ -59,7 +59,7 @@ def test_multilabel_pos_weights_reflect_rarity():
     ]
     class_to_idx = {"Rare": 0, "Common": 1}
     w = multilabel_pos_weights(samples, class_to_idx)
-    # Rare: 1 positive / 3 negatives -> weight 3.0; Common: 3 positive / 1 negative -> weight 1/3
+   
     assert w[0].item() == pytest.approx(3.0)
     assert w[1].item() == pytest.approx(1 / 3)
 
@@ -76,13 +76,13 @@ def test_build_dataloaders_multilabel_class_index(tmp_path):
     assert set(bundle.class_to_idx) == {"A", "B"}
     assert set(bundle.loaders) == {"train", "val", "test"}
     xb, yb = next(iter(bundle.loaders["train"]))
-    assert yb.shape == (2, 2)          # batch x num_classes, multi-hot
+    assert yb.shape == (2, 2)        
     assert yb.dtype == torch.float32
 
 
 def test_compute_multilabel_metrics_perfect_predictions():
     y_true = np.array([[1, 0], [0, 1], [1, 1], [0, 0]], dtype=np.float32)
-    y_prob = y_true.copy()  # perfect confidence
+    y_prob = y_true.copy()
     metrics = compute_multilabel_metrics(y_true, y_prob, ["A", "B"])
     assert metrics["exact_match_accuracy"] == 1.0
     assert metrics["hamming_accuracy"] == 1.0

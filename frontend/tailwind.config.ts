@@ -21,7 +21,6 @@ const config: Config = {
           800: "#1449b6",
           900: "#16408f",
         },
-        // Semantic tokens — values live in globals.css and swap with the theme.
         page: "rgb(var(--c-page) / <alpha-value>)",
         hero: "rgb(var(--c-hero) / <alpha-value>)",
         ink: {

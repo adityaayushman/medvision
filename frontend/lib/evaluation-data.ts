@@ -1,9 +1,3 @@
-// Real held-out test-set evaluation, per modality. Source of truth for each:
-// ml/artifacts/<modality>/{metrics.json, history.json}, produced by
-// `python ml/scripts/evaluate.py` (metrics via scikit-learn) on that
-// modality's leak-safe test split. These numbers are the actual output,
-// embedded verbatim — including the mammography result, which is honest
-// about *not* being good enough to deploy.
 
 export interface PerClass {
   label: string;
@@ -46,7 +40,7 @@ export interface ModalityEvaluation {
   confusionMatrix: number[][];
   shortLabels?: Record<string, string>;
   history: EpochRecord[];
-  randomBaseline: number; // 1 / num_classes, for the "vs random" sub-label
+  randomBaseline: number;
 }
 
 export const EVALUATIONS: Record<string, ModalityEvaluation> = {
@@ -188,10 +182,6 @@ export const EVALUATIONS: Record<string, ModalityEvaluation> = {
   },
 };
 
-// Series colors — CVD-safe blue/orange pair, theme-aware via CSS vars so each
-// mode uses a step that passes ≥3:1 contrast on its surface (computed:
-// dark #3b82f6 5.47:1, #d97706 6.32:1 · light #2563eb 4.72:1, #b45309 4.58:1;
-// deuteranopia-sim separation 223/441).
 export const SERIES = {
   train: "var(--series-train)",
   val: "var(--series-val)",

@@ -1,4 +1,3 @@
-"""Region-of-Interest extraction from a cleaned binary mask."""
 
 from __future__ import annotations
 
@@ -13,7 +12,6 @@ from ..config import PreprocessConfig
 
 @dataclass
 class ROI:
-    """A single detected region of interest with its cropped pixels."""
 
     x: int
     y: int
@@ -33,12 +31,6 @@ class ROI:
 def extract_rois(
     mask: np.ndarray, source: np.ndarray, cfg: PreprocessConfig
 ) -> List[ROI]:
-    """Find external contours, keep the largest significant ones, and crop them.
-
-    The minimum area is a *ratio* of the image, so it scales across resolutions.
-    Crops are taken from ``source`` (typically the resized original) with a
-    little padding so downstream models see context around the region.
-    """
     h_img, w_img = mask.shape[:2]
     min_area = cfg.min_roi_area_ratio * h_img * w_img
 
@@ -61,7 +53,6 @@ def extract_rois(
 
 
 def draw_rois(image: np.ndarray, rois: List[ROI]) -> np.ndarray:
-    """Return a BGR copy of ``image`` with labelled ROI rectangles drawn on."""
     out = image.copy()
     if out.ndim == 2:
         out = cv2.cvtColor(out, cv2.COLOR_GRAY2BGR)

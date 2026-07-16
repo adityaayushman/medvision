@@ -41,7 +41,7 @@ def _post_with_retry(url: str, *, tries: int = 4, backoff: float = 3.0, **kwargs
             last_exc = e
             if attempt < tries:
                 time.sleep(backoff * attempt)
-    raise last_exc  # type: ignore[misc]
+    raise last_exc 
 
 RAW_DICOM_DIR = Path("ml/data/rsna_pneumonia/drive-download-20240112T131344Z-002/stage_2_train_images")
 MANIFEST = Path("ml/data/rsna_pneumonia/prepared/manifest.csv")
@@ -138,7 +138,7 @@ def main() -> None:
         except requests.RequestException as e:
             print(f"[{i}/{len(sample)}] FAILED {patient_id}: {e}")
 
-        time.sleep(0.3)  # be gentle on the free-tier instance
+        time.sleep(0.3)  
 
     print(f"\nDone: {ok}/{len(sample)} patients seeded with a real analyzed scan.")
 

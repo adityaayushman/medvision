@@ -1,4 +1,3 @@
-"""Model evaluation: metrics, confusion matrix and ROC/AUC with saved plots."""
 
 from __future__ import annotations
 
@@ -26,7 +25,6 @@ from .dataset import build_dataloaders
 
 @torch.no_grad()
 def collect_predictions(model: torch.nn.Module, loader: DataLoader, device: torch.device):
-    """Return (y_true, y_pred, y_prob) over a loader (multiclass)."""
     model.eval()
     ys, preds, probs = [], [], []
     for inputs, targets in loader:
@@ -41,7 +39,6 @@ def collect_predictions(model: torch.nn.Module, loader: DataLoader, device: torc
 
 @torch.no_grad()
 def collect_predictions_multilabel(model: torch.nn.Module, loader: DataLoader, device: torch.device):
-    """Return (y_true, y_prob) over a loader — y_true is multi-hot, y_prob is per-class sigmoid."""
     model.eval()
     ys, probs = [], []
     for inputs, targets in loader:
@@ -53,7 +50,6 @@ def collect_predictions_multilabel(model: torch.nn.Module, loader: DataLoader, d
 
 
 def compute_metrics(y_true, y_pred, y_prob, class_names: Sequence[str]) -> Dict:
-    """Accuracy, macro P/R/F1, per-class P/R/F1, and ROC-AUC."""
     n_classes = len(class_names)
     p, r, f1, support = precision_recall_fscore_support(
         y_true, y_pred, labels=list(range(n_classes)), zero_division=0
@@ -68,7 +64,7 @@ def compute_metrics(y_true, y_pred, y_prob, class_names: Sequence[str]) -> Dict:
         else:
             auc = roc_auc_score(y_true, y_prob, multi_class="ovr", average="macro")
     except ValueError:
-        auc = float("nan")  # e.g. a class missing from y_true
+        auc = float("nan")
 
     return {
         "accuracy": float(accuracy_score(y_true, y_pred)),
@@ -90,13 +86,6 @@ def compute_metrics(y_true, y_pred, y_prob, class_names: Sequence[str]) -> Dict:
 def compute_multilabel_metrics(
     y_true: np.ndarray, y_prob: np.ndarray, class_names: Sequence[str], threshold: float = 0.5
 ) -> Dict:
-    """Per-class precision/recall/F1/AUC, mean AUC, exact-match and Hamming accuracy.
-
-    Accuracy is not a meaningful single number for multi-label — "exact match"
-    (every finding correct) is a harsh lower bound, "Hamming" (per-label
-    correctness) is more forgiving; both are reported alongside per-class AUC,
-    which is the standard NIH ChestX-ray14 benchmark metric.
-    """
     y_true_int = y_true.astype(int)
     y_pred = (y_prob >= threshold).astype(int)
 
@@ -132,7 +121,6 @@ def _save_plots(y_true, y_prob, cm, class_names, out_dir: Path) -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    # confusion matrix
     fig, ax = plt.subplots(figsize=(4.5, 4))
     im = ax.imshow(cm, cmap="Blues")
     ax.set_xticks(range(len(class_names)), class_names, rotation=45, ha="right")
@@ -145,7 +133,6 @@ def _save_plots(y_true, y_prob, cm, class_names, out_dir: Path) -> None:
     fig.colorbar(im, fraction=0.046)
     fig.tight_layout(); fig.savefig(out_dir / "confusion_matrix.png", dpi=120); plt.close(fig)
 
-    # ROC (binary only)
     if len(class_names) == 2:
         fpr, tpr, _ = roc_curve(y_true, y_prob[:, 1])
         auc = roc_auc_score(y_true, y_prob[:, 1])
@@ -166,13 +153,12 @@ def evaluate_checkpoint(
     out_dir: Optional[str] = None,
     device: Optional[str] = None,
 ) -> Dict:
-    """Load a checkpoint, evaluate on one split, save metrics.json + plots."""
     from .train import resolve_device
     device = resolve_device(device or "auto")
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
 
     mcfg = ModelConfig(**ckpt["model_config"])
-    mcfg.pretrained = False  # weights come from the checkpoint
+    mcfg.pretrained = False
     model = create_model(mcfg).to(device)
     model.load_state_dict(ckpt["state_dict"])
 
