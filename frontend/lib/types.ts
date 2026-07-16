@@ -87,6 +87,8 @@ export interface Patient {
   last_label?: string | null;
 }
 
+export type ReviewStatus = "pending" | "in-review" | "reviewed" | "flagged";
+
 export interface StudyRead {
   id: number;
   patient_id?: number | null;
@@ -101,6 +103,11 @@ export interface StudyRead {
   image_url: string;
   annotated_url?: string | null;
   prediction?: Prediction | null;
+  org_id?: number | null;
+  review_status?: ReviewStatus | null;
+  reviewed_by?: string | null;
+  review_note?: string | null;
+  reviewed_at?: string | null;
 }
 
 export interface Health {
