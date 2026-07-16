@@ -1,14 +1,8 @@
-// Server-rendered dataviz primitives for the Evaluation dashboard.
-// No client hooks: SVG + CSS, with native <title> tooltips and always-visible
-// direct labels so no information is hidden behind hover.
-
 import { cn } from "@/lib/utils";
 
-// Theme-aware chart inks — values swap with light/dark in globals.css.
 const INK_MUTED = "var(--chart-ink-muted)";
 const GRID = "var(--chart-grid)";
 
-/* ------------------------------- Stat tile ------------------------------- */
 export function StatTile({
   label,
   value,
@@ -36,7 +30,6 @@ export function StatTile({
   );
 }
 
-/* ------------------------------ Metric bar ------------------------------- */
 export function MetricBar({ value }: { value: number }) {
   const pct = Math.round(value * 100);
   return (
@@ -53,7 +46,6 @@ export function MetricBar({ value }: { value: number }) {
   );
 }
 
-/* --------------------------- Confusion matrix ---------------------------- */
 export function ConfusionMatrix({
   matrix,
   labels,
@@ -113,7 +105,6 @@ function RowCells({ row, i, labels, max }: { row: number[]; i: number; labels: s
   );
 }
 
-/* ------------------------------ Line chart ------------------------------- */
 type Series = { name: string; color: string; values: number[] };
 
 export function LineChart({
@@ -126,7 +117,7 @@ export function LineChart({
   series: Series[];
   xLabels: string[];
   yFormat?: (n: number) => string;
-  phaseBoundaryAfter?: number; // draw a divider after this x-index (1-based)
+  phaseBoundaryAfter?: number; 
   title: string;
 }) {
   const W = 520;

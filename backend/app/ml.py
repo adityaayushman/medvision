@@ -1,17 +1,3 @@
-"""Bridge between the FastAPI app and the medchron ML core.
-
-Runs the DIP pipeline on every image (quality + ROI). Classification + Grad-CAM
-only run if a trained checkpoint exists for the requested modality *and* the
-image clears the quality gate — a scan that's too blurry/dark/washed-out is not
-reliable to classify, so analysis stops there rather than returning a
-prediction nobody should trust. Torch is imported lazily, so the API still
-serves the preprocessing demo before any model is trained.
-
-Multiple modalities (chest X-ray, brain MRI, ...) each get their own pipeline
-+ optional predictor, loaded once at startup. A modality with no configured
-checkpoint simply runs preprocess-only — exactly how the single-modality
-service always behaved, so existing chest-X-ray callers are unaffected.
-"""
 
 from __future__ import annotations
 
@@ -29,9 +15,6 @@ from medchron.imaging.roi import ROI
 
 from .config import settings
 
-# modality -> checkpoint path. A modality with an empty/missing path just runs
-# preprocess-only. Add a new modality here + a PRESETS entry in medchron.config
-# to onboard it — nothing else in this file changes.
 MODALITY_CHECKPOINTS: Dict[str, str] = {
     "chest_xray": settings.model_checkpoint,
     "brain_mri": settings.model_checkpoint_brain_mri,
@@ -40,8 +23,6 @@ MODALITY_CHECKPOINTS: Dict[str, str] = {
 
 
 def _preprocessing_ops(cfg: PreprocessConfig) -> List[str]:
-    """Human-readable list of the DIP operations actually applied, from the
-    same config object the pipeline ran with — never hand-typed / guessed."""
     ops = [f"Denoise: {cfg.denoise_method} ({cfg.denoise_ksize}x{cfg.denoise_ksize})"]
     if cfg.use_hist_eq:
         ops.append(f"CLAHE: clip={cfg.clahe_clip}, tile={cfg.clahe_tile}x{cfg.clahe_tile}")
@@ -53,10 +34,6 @@ def _preprocessing_ops(cfg: PreprocessConfig) -> List[str]:
 
 
 def _roi_confidence(rois: List[ROI], cfg: PreprocessConfig) -> Optional[Dict]:
-    """Heuristic confidence per ROI, based on how far its area is above the
-    minimum-area threshold. This is explicitly NOT a learned/calibrated
-    confidence (contour-based ROI extraction has none) — it's a transparent,
-    documented proxy so the UI never implies more certainty than exists."""
     if not rois:
         return None
     img_area = cfg.target_size[0] * cfg.target_size[1]
@@ -121,30 +98,21 @@ class AnalyzerService:
             print(f"[ml] No checkpoint at {ckpt} for modality={modality!r} — preprocess-only for this modality.")
             return None
         try:
-            from medchron.models import Predictor  # imports torch lazily
+            from medchron.models import Predictor
             print(f"[ml] Loading {modality} checkpoint {ckpt}")
             return Predictor(str(ckpt))
-        except Exception as exc:  # torch missing / bad checkpoint
+        except Exception as exc:
             print(f"[ml] Could not load {modality} model ({exc}); preprocess-only for this modality.")
             return None
 
     def available_modalities(self) -> Dict[str, bool]:
-        """modality -> whether a trained model is loaded for it."""
         return {m: (p is not None) for m, p in self.predictors.items()}
 
     @property
     def model_loaded(self) -> bool:
-        """Backward-compat single flag: is the *default* modality's model loaded."""
         return self.predictors.get(settings.modality) is not None
 
     def analyze(self, image_bgr: np.ndarray, modality: Optional[str] = None):
-        """Return (payload, PipelineResult, gradcam_overlay_or_None).
-
-        The PipelineResult carries every DIP stage (enhanced, segmentation mask,
-        annotated ROIs, ...) so the API can expose the full processing gallery.
-        Unknown/omitted modality falls back to the configured default, so every
-        caller from before v2 (which never sent a modality) behaves identically.
-        """
         modality = modality if modality in self.pipelines else settings.modality
         pipeline = self.pipelines[modality]
         predictor = self.predictors[modality]
@@ -174,7 +142,7 @@ class AnalyzerService:
                 "roi_confidence": _roi_confidence(result.rois, config),
                 "processing_time_ms": processing_time_ms,
                 "model_version": predictor.model_version if predictor else None,
-                "inference_time_ms": None,  # filled in below if inference actually runs
+                "inference_time_ms": None,
             },
         }
 
@@ -190,5 +158,4 @@ class AnalyzerService:
 
 @lru_cache(maxsize=1)
 def get_analyzer() -> AnalyzerService:
-    """Process-wide singleton (models loaded once)."""
     return AnalyzerService()

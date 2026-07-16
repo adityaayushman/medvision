@@ -1,7 +1,3 @@
-"""Expose the ML core's dataset registry so the site can show what the
-platform is built on and trained/evaluated against — single source of truth
-(medchron.data.registry), no duplication between the ML docs and the website.
-"""
 
 from __future__ import annotations
 

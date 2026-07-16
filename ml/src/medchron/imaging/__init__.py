@@ -1,4 +1,3 @@
-"""Digital Image Processing layer for MedChron AI."""
 
 from .enhancement import denoise, enhance_contrast, normalize01, to_grayscale
 from .pipeline import MedicalImagePipeline, PipelineResult, model_image

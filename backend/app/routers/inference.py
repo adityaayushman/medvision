@@ -1,9 +1,3 @@
-"""/api/analyze — upload a scan, run the pipeline (+model), persist a Study.
-
-Images (original + every DIP stage + Grad-CAM) are stored in the database as
-bytes, not on disk, so records and their images survive on hosts with an
-ephemeral filesystem (e.g. Render free tier). They are served by /api/image/{id}.
-"""
 
 from __future__ import annotations
 
@@ -58,11 +52,10 @@ async def analyze(
 
     meta = payload["processing_metadata"]
 
-    # persist the Study first (its id is the FK for the images)
     study = Study(
         patient_id=patient_id,
         modality=payload["modality"],
-        image_path="",  # images live in the DB now
+        image_path="",
         quality_passed=payload["quality"]["passed"],
         quality_reasons=";".join(payload["quality"]["reasons"]),
         num_rois=payload["num_rois"],
@@ -77,7 +70,6 @@ async def analyze(
     session.commit()
     session.refresh(study)
 
-    # store the original + each DIP stage (+ Grad-CAM) as image rows
     stage_arrays = [
         ("original", result.original),
         ("enhanced", result.enhanced),
@@ -109,7 +101,7 @@ async def analyze(
             confidence=pred["confidence"],
             probabilities=json.dumps(pred["probabilities"]),
             backbone=pred.get("backbone", ""),
-            heatmap_path=heatmap_url,  # stores the /api/image URL
+            heatmap_path=heatmap_url,
         ))
         session.commit()
 

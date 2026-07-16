@@ -1,9 +1,3 @@
-"""Registry of candidate datasets — the project's dataset shortlist, as code.
-
-Encoding the shortlist here (instead of only in a doc) means the training and
-CLI code can reason about a dataset's task, modality, ROI support and access
-constraints programmatically. V1 targets chest X-ray.
-"""
 
 from __future__ import annotations
 
@@ -21,7 +15,7 @@ class DatasetSpec:
     modality: str
     task: Task
     access: Access
-    roi_support: bool                 # does it provide masks / boxes for real ROI?
+    roi_support: bool
     approx_images: str
     url: str
     notes: str = ""
@@ -29,14 +23,13 @@ class DatasetSpec:
 
 
 REGISTRY: Dict[str, DatasetSpec] = {
-    # ---- Chest X-ray classification / localization ----
     "rsna_pneumonia": DatasetSpec(
         key="rsna_pneumonia",
         name="RSNA Pneumonia Detection Challenge",
         modality="Chest X-ray",
         task="detection",
         access="kaggle",
-        roi_support=True,             # bounding boxes on lung opacities
+        roi_support=True,
         approx_images="~26k",
         url="https://www.kaggle.com/datasets/parin30/rsna-pneumonia-detection",
         notes="Cleanest path to an MVP: clear labels + boxes for ROI/localization.",
@@ -78,7 +71,6 @@ REGISTRY: Dict[str, DatasetSpec] = {
         notes="Stanford multi-label benchmark; strong research credibility.",
         recommended_for=["benchmark"],
     ),
-    # ---- Lung-field ROI / segmentation (fixes whole-image Otsu limitation) ----
     "montgomery_shenzhen": DatasetSpec(
         key="montgomery_shenzhen",
         name="Montgomery + Shenzhen Lung Segmentation",
@@ -103,7 +95,6 @@ REGISTRY: Dict[str, DatasetSpec] = {
         notes="Image+mask pairs for ROI/preprocessing experiments.",
         recommended_for=["roi", "lung segmentation"],
     ),
-    # ---- Brain MRI classification (v2 multi-modality) ----
     "brain_tumor_mri": DatasetSpec(
         key="brain_tumor_mri",
         name="Brain Tumor Classification (MRI)",
@@ -117,14 +108,13 @@ REGISTRY: Dict[str, DatasetSpec] = {
               "so splits are image-level rather than patient-level.",
         recommended_for=["v2", "multi-modality"],
     ),
-    # ---- Mammography classification (v2 multi-modality) ----
     "mias_mammography": DatasetSpec(
         key="mias_mammography",
         name="MIAS Mammography Database",
         modality="Mammography",
         task="classification",
         access="kaggle",
-        roi_support=True,       # abnormality center + radius annotated for non-normal cases
+        roi_support=True,
         approx_images="322",
         url="https://www.kaggle.com/datasets/kmader/mias-mammography",
         notes="Classic MIAS benchmark; small (322 scans). 3-class (Normal/Benign/Malignant) "
@@ -145,5 +135,4 @@ def get_spec(key: str) -> DatasetSpec:
 
 
 def recommended_v1() -> List[DatasetSpec]:
-    """The V1 pairing: one classifier dataset + one lung-ROI dataset."""
     return [REGISTRY["rsna_pneumonia"], REGISTRY["montgomery_shenzhen"]]

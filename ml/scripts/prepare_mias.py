@@ -33,14 +33,14 @@ from medchron.data.split import assert_no_patient_leakage
 
 def load_labels(info_path: Path) -> dict[str, str]:
     labels: dict[str, str] = {}
-    lines = info_path.read_text(encoding="utf-8").splitlines()[1:]  # skip header
+    lines = info_path.read_text(encoding="utf-8").splitlines()[1:]  
     for line in lines:
         parts = line.split()
         if not parts:
             continue
         ref = parts[0]
         if ref in labels:
-            continue  # keep first occurrence only
+            continue  
         cls = parts[2] if len(parts) > 2 else "NORM"
         sev = parts[3] if len(parts) > 3 else None
         if cls == "NORM":

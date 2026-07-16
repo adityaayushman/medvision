@@ -1,8 +1,3 @@
-"""MedChron AI backend — FastAPI application entrypoint.
-
-Run:  uvicorn app.main:app --reload   (from the backend/ directory)
-Docs: http://localhost:8000/docs
-"""
 
 from __future__ import annotations
 
@@ -21,7 +16,7 @@ from .routers import datasets, images, inference, patients, studies
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    get_analyzer()  # warm the pipeline / load the model once
+    get_analyzer()
     yield
 
 
@@ -40,7 +35,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# serve uploaded images + Grad-CAM overlays
 app.mount("/static", StaticFiles(directory=str(settings.storage_dir)), name="static")
 
 app.include_router(inference.router)

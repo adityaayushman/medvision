@@ -1,10 +1,3 @@
-"""Dataset manifests — a uniform, framework-agnostic index of samples.
-
-A *manifest* is just a list of :class:`Sample` rows (path, label, patient, split)
-that can be written to / read from CSV. Every downstream consumer (TensorFlow
-``tf.data`` or PyTorch ``Dataset``) is built on top of a manifest, so the data
-plumbing never depends on how a particular dataset happens to lay out its files.
-"""
 
 from __future__ import annotations
 
@@ -15,17 +8,16 @@ from pathlib import Path
 from typing import Callable, Dict, List, Optional, Union
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
-LABEL_DELIM = "|"  # matches NIH ChestX-ray14's native "Finding Labels" format
+LABEL_DELIM = "|"
 
 
 @dataclass
 class Sample:
-    """One image row in a manifest."""
 
     path: str
     label: str
-    patient_id: str = ""     # empty string == unknown; enables leak-free splits
-    split: str = ""          # "train" | "val" | "test" | "" (unassigned)
+    patient_id: str = ""
+    split: str = ""
 
 
 PatientResolver = Callable[[Path], str]
@@ -35,11 +27,6 @@ def build_manifest_from_folders(
     root: Union[str, Path],
     patient_from: Optional[PatientResolver] = None,
 ) -> List[Sample]:
-    """Index an ``ImageFolder``-style dataset: ``root/<class_name>/*.png``.
-
-    ``patient_from`` optionally derives a patient id from each file path (e.g.
-    parsing it out of the filename) so splits can be made patient-aware.
-    """
     root = Path(root)
     if not root.is_dir():
         raise NotADirectoryError(f"Dataset root not found: {root}")
@@ -61,12 +48,6 @@ def build_manifest_from_csv(
     patient_col: Optional[str] = None,
     path_prefix: Union[str, Path, None] = None,
 ) -> List[Sample]:
-    """Index a dataset described by a labels CSV.
-
-    ``path_prefix`` is joined onto each row's ``path_col`` value — handy for
-    datasets (e.g. NIH ChestX-ray14) whose CSV only lists bare filenames
-    ("00000001_000.png") rather than full paths.
-    """
     prefix = Path(path_prefix) if path_prefix else None
     samples: List[Sample] = []
     with open(csv_path, newline="", encoding="utf-8") as fh:
@@ -88,13 +69,6 @@ def build_manifest_from_csv(
 def build_multilabel_class_index(
     samples: List[Sample], delim: str = LABEL_DELIM
 ) -> Dict[str, int]:
-    """Deterministic label -> index mapping for multi-label datasets.
-
-    Each sample's ``label`` holds a delimiter-separated set of findings (e.g.
-    ``"Cardiomegaly|Effusion"``). Builds a sorted vocabulary of every distinct
-    finding seen across all samples, so the mapping is reproducible regardless
-    of row order.
-    """
     vocab = set()
     for s in samples:
         vocab.update(part.strip() for part in s.label.split(delim) if part.strip())
@@ -119,13 +93,11 @@ def read_manifest(path: Union[str, Path]) -> List[Sample]:
 
 
 def class_distribution(samples: List[Sample]) -> Dict[str, int]:
-    """Count samples per label — used to detect and report class imbalance."""
     return dict(Counter(s.label for s in samples))
 
 
 def split_distribution(samples: List[Sample]) -> Dict[str, Dict[str, int]]:
-    """Per-split class counts, e.g. ``{'train': {'normal': 80, ...}, ...}``."""
     out: Dict[str, Dict[str, int]] = {}
     for s in samples:
-        out.setdefault(s.split or "unassigned", Counter())[s.label] += 1  # type: ignore[index]
+        out.setdefault(s.split or "unassigned", Counter())[s.label] += 1
     return {k: dict(v) for k, v in out.items()}

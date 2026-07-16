@@ -1,9 +1,3 @@
-"""Two-phase transfer-learning trainer (PyTorch).
-
-Phase 1 trains only the new head (backbone frozen); phase 2 fine-tunes the top of
-the network at a low learning rate. Includes class-weighted loss, mixed precision
-(for the 6 GB GPU), ``ReduceLROnPlateau``, early stopping, and best-checkpointing.
-"""
 
 from __future__ import annotations
 
@@ -34,7 +28,7 @@ from .dataset import Task, build_dataloaders
 @dataclass
 class TrainConfig:
     backbone: str = "vgg16"
-    task: Task = "multiclass"     # "multiclass" (one label/image) or "multilabel" (several)
+    task: Task = "multiclass"
     label_delim: str = LABEL_DELIM
     epochs_head: int = 5
     epochs_finetune: int = 10
@@ -47,7 +41,7 @@ class TrainConfig:
     amp: bool = True
     num_workers: int = 0
     seed: int = 42
-    device: str = "auto"          # "auto" | "cpu" | "cuda"
+    device: str = "auto"
     out_dir: str = "ml/artifacts"
 
 
@@ -59,7 +53,6 @@ def set_seed(seed: int) -> None:
 
 
 def resolve_device(pref: str = "auto") -> torch.device:
-    """Pick a device honouring the preference, falling back to CPU safely."""
     if pref == "cpu":
         return torch.device("cpu")
     if pref in ("cuda", "auto") and torch.cuda.is_available():
@@ -78,12 +71,6 @@ def _run_epoch(
     optimizer: Optional[torch.optim.Optimizer] = None,
     scaler: Optional["torch.cuda.amp.GradScaler"] = None,
 ) -> tuple[float, float]:
-    """One pass over ``loader``. Trains if ``optimizer`` is given, else evaluates.
-
-    The returned "accuracy" is a training-loop monitoring signal, not the final
-    metric: argmax match for multiclass, mean per-label match (0.5 threshold)
-    for multilabel. Real evaluation (per-class AUC etc.) lives in evaluate.py.
-    """
     training = optimizer is not None
     model.train(training)
     use_amp = scaler is not None and device.type == "cuda"
@@ -125,7 +112,6 @@ class _EarlyStopper:
         self.best_state: Optional[dict] = None
 
     def step(self, val_loss: float, model: nn.Module) -> bool:
-        """Return True if training should stop."""
         if val_loss < self.best - 1e-4:
             self.best = val_loss
             self.bad = 0
@@ -153,10 +139,6 @@ def _run_phase(
     best_state: Optional[dict] = None,
     save_state=None,
 ) -> None:
-    """Run one phase's epochs from ``start_epoch``, checkpointing resumable state
-    after every epoch via ``save_state`` so a shutdown mid-phase loses at most
-    one epoch. Restores the phase's best weights into ``model`` when finished.
-    """
     history = history if history is not None else []
     stopper = _EarlyStopper(patience)
     stopper.best = best_val
@@ -194,7 +176,7 @@ def _run_phase(
             break
 
     if stopper.best_state is not None:
-        model.load_state_dict(stopper.best_state)  # restore best weights
+        model.load_state_dict(stopper.best_state)
 
 
 def train(
@@ -203,15 +185,6 @@ def train(
     preprocess: Optional[PreprocessConfig] = None,
     resume: bool = False,
 ) -> dict:
-    """Run the full two-phase training and save the best checkpoint.
-
-    Resumable: a ``training_state_<backbone>.pt`` file is rewritten after every
-    epoch. With ``resume=True`` an interrupted run (e.g. a shutdown) picks up from
-    the last completed epoch — same phase, optimizer, scheduler, best-so-far and
-    history. The state file is deleted once training finishes cleanly.
-
-    Returns a summary dict with the checkpoint path, class map and history.
-    """
     tcfg = tcfg or TrainConfig()
     preprocess = preprocess or PreprocessConfig()
     set_seed(tcfg.seed)
@@ -237,7 +210,6 @@ def train(
     state_path = out_dir / f"training_state_{tcfg.backbone}.pt"
     ckpt_path = out_dir / f"model_{tcfg.backbone}.pt"
 
-    # ---- Resume from a saved epoch, if requested and available ----
     resume_state = None
     if resume and state_path.exists():
         resume_state = torch.load(state_path, map_location=device, weights_only=False)
@@ -266,7 +238,6 @@ def train(
     print(f"Device: {device} | backbone: {tcfg.backbone} | task: {tcfg.task} | "
           f"classes: {bundle.class_to_idx}", flush=True)
 
-    # ---- Phase 1: feature extraction (head only) ----
     if resume_phase in (None, "head"):
         freeze_backbone(model, tcfg.backbone)
         print(f"Phase 1 trainable params: {trainable_parameter_count(model):,}", flush=True)
@@ -284,7 +255,6 @@ def train(
                    tcfg.epochs_head, tcfg.patience, scaler, task=tcfg.task, history=history,
                    start_epoch=s_epoch, best_val=b_val, best_state=b_state, save_state=save_state)
 
-    # ---- Phase 2: fine-tuning (unfreeze top) ----
     unfreeze_top_fraction(model, tcfg.finetune_fraction)
     print(f"Phase 2 trainable params: {trainable_parameter_count(model):,}", flush=True)
     opt2 = torch.optim.AdamW(
@@ -305,7 +275,6 @@ def train(
                scheduler=scheduler, history=history, start_epoch=s_epoch,
                best_val=b_val, best_state=b_state, save_state=save_state)
 
-    # ---- Persist final deployable checkpoint ----
     torch.save(
         {
             "state_dict": model.state_dict(),
@@ -320,7 +289,7 @@ def train(
     )
     (out_dir / "history.json").write_text(json.dumps(history, indent=2))
     if state_path.exists():
-        state_path.unlink()  # training complete — no resume state needed
+        state_path.unlink()
     print(f"Saved checkpoint -> {ckpt_path}", flush=True)
 
     return {"checkpoint": str(ckpt_path), "class_to_idx": bundle.class_to_idx, "history": history}

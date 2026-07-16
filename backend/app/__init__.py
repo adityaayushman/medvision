@@ -1,1 +1,1 @@
-"""MedChron AI FastAPI backend."""
+pass

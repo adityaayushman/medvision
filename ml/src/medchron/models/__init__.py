@@ -1,4 +1,3 @@
-"""Model layer: backbones, datasets, training, evaluation, and inference."""
 
 from .backbone import (
     ModelConfig,
