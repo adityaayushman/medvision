@@ -21,7 +21,11 @@ services:
       - key: MODEL_CHECKPOINT
         value: /app/backend/model/model_efficientnet_b0.pt
       - key: MODEL_CHECKPOINT_BRAIN_MRI
-        value: /app/backend/model/model_efficientnet_b0_brain_mri.pt
+        # 3-way ensemble (soft-voted): beats the single EfficientNet-B0 baseline
+        # on every metric on the held-out test split (87.1% vs 82.0% accuracy,
+        # macro F1 0.870 vs 0.819, ROC-AUC 0.973 vs 0.956) — see ml/artifacts/
+        # brain_mri_ensemble/metrics.json vs ml/artifacts/brain_mri/metrics.json.
+        value: /app/backend/model/model_efficientnet_b0_brain_mri.pt,/app/backend/model/model_resnet50_brain_mri.pt,/app/backend/model/model_densenet121_brain_mri.pt
       - key: MODEL_CHECKPOINT_MAMMOGRAPHY
         value: /app/backend/model/model_efficientnet_b0_mammography.pt
       - key: CORS_ORIGINS
