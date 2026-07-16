@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 
-// In dev, proxy API + static image requests to the FastAPI backend so the
-// browser talks to a single origin (no CORS juggling). Override with
-// BACKEND_URL when the backend runs elsewhere.
 const BACKEND = process.env.BACKEND_URL || "http://localhost:8000";
 
 const nextConfig = {

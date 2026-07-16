@@ -1,4 +1,3 @@
-"""Pydantic request/response models for the API."""
 
 from __future__ import annotations
 
@@ -64,6 +63,43 @@ class AnalyzeResponse(BaseModel):
     analysis_stopped: bool = False
     pipeline_steps: List[Dict] = []
     processing_metadata: Dict = {}
+
+
+class ReportQuality(BaseModel):
+    passed: bool
+    score: Optional[int] = None
+    reasons: List[str] = []
+
+
+class ReportPrediction(BaseModel):
+    label: str
+    confidence: float
+    probabilities: Dict[str, float]
+    backbone: str = ""
+
+
+class ReportPatient(BaseModel):
+    id: int
+    name: str
+    sex: Optional[str] = None
+    birth_year: Optional[int] = None
+
+
+class ReportRead(BaseModel):
+    study_id: int
+    generated_at: datetime
+    modality: str
+    modality_label: str
+    uploaded_at: datetime
+    patient: Optional[ReportPatient] = None
+    quality: ReportQuality
+    num_rois: int
+    analysis_stopped: bool
+    model_version: Optional[str] = None
+    processing_time_ms: Optional[float] = None
+    inference_time_ms: Optional[float] = None
+    prediction: Optional[ReportPrediction] = None
+    disclaimer: str
 
 
 class DatasetSpecRead(BaseModel):

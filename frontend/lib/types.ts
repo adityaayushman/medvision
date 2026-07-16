@@ -56,6 +56,7 @@ export interface Prediction {
   explained_class?: string;
   model_version?: string;
   inference_time_ms?: number;
+  heatmap_url?: string | null;
 }
 
 export interface AnalyzeResponse {
@@ -115,6 +116,23 @@ export const MODALITY_LABELS: Record<string, string> = {
   brain_mri: "Brain MRI",
   mammography: "Mammography",
 };
+
+export interface ReportRead {
+  study_id: number;
+  generated_at: string;
+  modality: string;
+  modality_label: string;
+  uploaded_at: string;
+  patient: { id: number; name: string; sex?: string | null; birth_year?: number | null } | null;
+  quality: { passed: boolean; score?: number | null; reasons: string[] };
+  num_rois: number;
+  analysis_stopped: boolean;
+  model_version?: string | null;
+  processing_time_ms?: number | null;
+  inference_time_ms?: number | null;
+  prediction: { label: string; confidence: number; probabilities: Record<string, number>; backbone?: string } | null;
+  disclaimer: string;
+}
 
 export interface DatasetSpec {
   key: string;

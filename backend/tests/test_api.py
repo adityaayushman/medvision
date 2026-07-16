@@ -15,21 +15,19 @@ import cv2
 import numpy as np
 import pytest
 
-# Configure the app BEFORE importing it (settings is read at import time).
 _TMP = Path(tempfile.mkdtemp(prefix="medchron_test_"))
 os.environ["DATABASE_URL"] = f"sqlite:///{_TMP / 'test.db'}"
 os.environ["STORAGE_DIR"] = str(_TMP / "storage")
-os.environ["MODEL_CHECKPOINT"] = str(_TMP / "no_such_model.pt")  # force preprocess-only
+os.environ["MODEL_CHECKPOINT"] = str(_TMP / "no_such_model.pt")  
 
 pytest.importorskip("fastapi")
-from fastapi.testclient import TestClient  # noqa: E402
+from fastapi.testclient import TestClient 
 
-from app.main import app  # noqa: E402
+from app.main import app 
 
 
 @pytest.fixture(scope="module")
 def client():
-    # context manager fires the lifespan handler -> tables created, model loaded
     with TestClient(app) as c:
         yield c
 
@@ -47,36 +45,29 @@ def test_health(client):
     assert r.status_code == 200
     body = r.json()
     assert body["status"] == "ok"
-    assert body["model_loaded"] is False  # preprocess-only
-
+    assert body["model_loaded"] is False 
 
 def test_analyze_and_timeline(client):
-    # create a patient
     r = client.post("/api/patients", json={"name": "Test Patient", "sex": "F", "birth_year": 1990})
     assert r.status_code == 200
     patient_id = r.json()["id"]
-
-    # analyze a scan attached to that patient
     files = {"file": ("scan.png", _png_bytes(), "image/png")}
     r = client.post("/api/analyze", files=files, data={"patient_id": str(patient_id)})
     assert r.status_code == 200, r.text
     body = r.json()
     assert "quality" in body and "num_rois" in body
-    assert body["prediction"] is None          # no model loaded
-    assert body["image_url"].startswith("/api/image/")   # images stored in the DB
+    assert body["prediction"] is None  
+    assert body["image_url"].startswith("/api/image/") 
     assert body["study_id"] is not None
-    # the full DIP pipeline gallery is returned (no model -> no Grad-CAM stage)
     stage_names = [s["name"] for s in body["stages"]]
     assert stage_names == ["Original", "Enhanced (CLAHE)", "Segmentation", "ROIs"]
 
-    # each stage image is actually retrievable from the DB
     stage_url = body["stages"][0]["url"]
     r = client.get(stage_url)
     assert r.status_code == 200
     assert r.headers["content-type"] == "image/png"
     assert len(r.content) > 100
 
-    # the study shows up on the patient's timeline
     r = client.get(f"/api/patients/{patient_id}/timeline")
     assert r.status_code == 200
     timeline = r.json()
@@ -91,7 +82,6 @@ def test_analyze_rejects_non_image(client):
 
 
 def test_studies_lists_all_analyzed(client):
-    # an analyzed scan (no patient attached) must still show up in /api/studies
     files = {"file": ("scan.png", _png_bytes(), "image/png")}
     r = client.post("/api/analyze", files=files)
     assert r.status_code == 200
@@ -121,15 +111,35 @@ def test_studies_survive_null_legacy_columns(client):
     with Session(engine) as session:
         study = session.exec(select(Study).where(Study.id == study_id)).first()
         study.quality_score = None
-        study.analysis_stopped = None  # simulate a pre-migration row
-        study.model_version = None
+        study.analysis_stopped = None
         session.add(study)
         session.commit()
 
     r = client.get("/api/studies")
     assert r.status_code == 200
     match = next(s for s in r.json() if s["id"] == study_id)
-    assert match["analysis_stopped"] is False  # coerced from NULL, not a validation error
+    assert match["analysis_stopped"] is False  
+
+def test_study_report_json_and_pdf(client):
+    r = client.post("/api/patients", json={"name": "Report Patient", "sex": "M", "birth_year": 1975})
+    patient_id = r.json()["id"]
+
+    files = {"file": ("scan.png", _png_bytes(), "image/png")}
+    r = client.post("/api/analyze", files=files, data={"patient_id": str(patient_id)})
+    assert r.status_code == 200
+    study_id = r.json()["study_id"]
+
+    r = client.get(f"/api/studies/{study_id}/report")
+    assert r.status_code == 200
+    report = r.json()
+    assert report["study_id"] == study_id
+    assert report["patient"]["name"] == "Report Patient"
+    assert "AI Draft" in report["disclaimer"]
+
+    r = client.get(f"/api/studies/{study_id}/report.pdf")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "application/pdf"
+    assert r.content[:5] == b"%PDF-"
 
 
 def test_datasets_registry(client):

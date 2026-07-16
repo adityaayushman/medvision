@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FileStack, Loader2, ScanLine, ShieldAlert, ShieldCheck, UserPlus } from "lucide-react";
+import { FileStack, FileText, Loader2, ScanLine, ShieldAlert, ShieldCheck, UserPlus } from "lucide-react";
 import { assignPatient, listPatients, listStudies } from "@/lib/api";
 import type { Patient, StudyRead } from "@/lib/types";
 import { MODALITY_LABELS } from "@/lib/types";
@@ -128,9 +128,17 @@ export default function RecordsPage() {
                   )}
                 </div>
 
-                <p className="mt-2 text-[11px] text-ink-5">
-                  {new Date(s.uploaded_at).toLocaleString()}
-                </p>
+                <div className="mt-2 flex items-center justify-between">
+                  <p className="text-[11px] text-ink-5">
+                    {new Date(s.uploaded_at).toLocaleString()}
+                  </p>
+                  <Link
+                    href={`/records/${s.id}`}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
+                  >
+                    <FileText className="h-3.5 w-3.5" /> Report
+                  </Link>
+                </div>
               </div>
             </div>
           ))}
