@@ -1,7 +1,5 @@
-import type { AnalyzeResponse, DatasetSpec, Health, Patient, StudyRead } from "./types";
+import type { AnalyzeResponse, DatasetSpec, Health, Patient, ReportRead, StudyRead } from "./types";
 
-// All requests are relative — next.config.mjs rewrites /api and /static to the
-// FastAPI backend, so there is a single origin in dev and no CORS friction.
 
 async function jsonOrThrow<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -70,4 +68,18 @@ export async function assignPatient(studyId: number, patientId: number): Promise
     body: JSON.stringify({ patient_id: patientId }),
   });
   return jsonOrThrow<StudyRead>(res);
+}
+
+export async function getStudy(studyId: number): Promise<StudyRead> {
+  return jsonOrThrow<StudyRead>(await fetch(`/api/studies/${studyId}`, { cache: "no-store" }));
+}
+
+export async function getReport(studyId: number): Promise<ReportRead> {
+  return jsonOrThrow<ReportRead>(
+    await fetch(`/api/studies/${studyId}/report`, { cache: "no-store" }),
+  );
+}
+
+export function reportPdfUrl(studyId: number): string {
+  return `/api/studies/${studyId}/report.pdf`;
 }

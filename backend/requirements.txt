@@ -7,3 +7,4 @@ python-multipart>=0.0.9
 pydantic>=2.6
 # Postgres driver (for a Supabase DATABASE_URL in production; unused with SQLite)
 psycopg2-binary>=2.9
+reportlab>=5.0

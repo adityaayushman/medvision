@@ -1,18 +1,16 @@
-"""All analyzed studies — the global record of every scan run through /analyze,
-whether or not it was attached to a patient. This is what the frontend's
-Records page lists."""
 
 from __future__ import annotations
 
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from ..db import get_session
 from ..models_db import Patient, Study
-from ..schemas import StudyRead
+from ..reports import build_report_data, render_report_pdf
+from ..schemas import ReportRead, StudyRead
 from .patients import _study_to_read
 
 router = APIRouter(prefix="/api/studies", tags=["studies"])
@@ -24,7 +22,6 @@ class AssignPatient(BaseModel):
 
 @router.get("", response_model=List[StudyRead])
 def list_studies(limit: int = 200, session: Session = Depends(get_session)):
-    """Every analyzed scan, newest first (across all patients + unassigned)."""
     studies = session.exec(
         select(Study).order_by(Study.uploaded_at.desc()).limit(limit)
     ).all()
@@ -36,9 +33,16 @@ def study_count(session: Session = Depends(get_session)) -> dict:
     return {"count": len(session.exec(select(Study)).all())}
 
 
+@router.get("/{study_id}", response_model=StudyRead)
+def get_study(study_id: int, session: Session = Depends(get_session)):
+    study = session.get(Study, study_id)
+    if not study:
+        raise HTTPException(status_code=404, detail="Study not found")
+    return _study_to_read(study, session)
+
+
 @router.patch("/{study_id}/patient", response_model=StudyRead)
 def assign_patient(study_id: int, body: AssignPatient, session: Session = Depends(get_session)):
-    """Attach an existing (e.g. previously unassigned) study to a patient."""
     study = session.get(Study, study_id)
     if not study:
         raise HTTPException(status_code=404, detail="Study not found")
@@ -49,3 +53,25 @@ def assign_patient(study_id: int, body: AssignPatient, session: Session = Depend
     session.commit()
     session.refresh(study)
     return _study_to_read(study, session)
+
+
+@router.get("/{study_id}/report", response_model=ReportRead)
+def get_report(study_id: int, session: Session = Depends(get_session)):
+    study = session.get(Study, study_id)
+    if not study:
+        raise HTTPException(status_code=404, detail="Study not found")
+    return build_report_data(study, session)
+
+
+@router.get("/{study_id}/report.pdf")
+def get_report_pdf(study_id: int, session: Session = Depends(get_session)) -> Response:
+    study = session.get(Study, study_id)
+    if not study:
+        raise HTTPException(status_code=404, detail="Study not found")
+    report = build_report_data(study, session)
+    pdf_bytes = render_report_pdf(report, session)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="medchron_report_study_{study_id}.pdf"'},
+    )

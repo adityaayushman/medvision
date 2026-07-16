@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Activity } from "lucide-react";
+import { ArrowLeft, Loader2, Activity, FileText } from "lucide-react";
 import { getPatient, getTimeline } from "@/lib/api";
 import type { Patient, StudyRead } from "@/lib/types";
 import { pct } from "@/lib/utils";
@@ -80,6 +80,12 @@ export default function PatientTimeline({ params }: { params: Promise<{ id: stri
                     {s.quality_passed ? "quality passed" : "quality flagged"}
                   </p>
                 </div>
+                <Link
+                  href={`/records/${s.id}`}
+                  className="inline-flex items-center gap-1 self-start text-xs font-medium text-brand-600 hover:underline dark:text-brand-400"
+                >
+                  <FileText className="h-3.5 w-3.5" /> Report
+                </Link>
               </div>
             </li>
           ))}
