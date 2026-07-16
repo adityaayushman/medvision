@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, BarChart3, Database, FileStack, ScanLine, Users } from "lucide-react";
+import { Activity, BarChart3, Database, FileStack, ScanLine, ShieldCheck, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme";
 
@@ -52,6 +52,14 @@ export function Navbar() {
               );
             })}
           </div>
+          <Link
+            href="/dashboard/signup"
+            className="hidden items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-ink-3 transition hover:bg-surface-2 hover:text-ink sm:inline-flex"
+            title="Clinical dashboard — org accounts, case queue, audit trail"
+          >
+            <ShieldCheck className="h-4 w-4" />
+            Clinical Dashboard
+          </Link>
           <ThemeToggle />
         </div>
       </nav>
