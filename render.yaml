@@ -21,11 +21,17 @@ services:
       - key: MODEL_CHECKPOINT
         value: /app/backend/model/model_efficientnet_b0.pt
       - key: MODEL_CHECKPOINT_BRAIN_MRI
-        # 3-way ensemble (soft-voted): beats the single EfficientNet-B0 baseline
-        # on every metric on the held-out test split (87.1% vs 82.0% accuracy,
-        # macro F1 0.870 vs 0.819, ROC-AUC 0.973 vs 0.956) — see ml/artifacts/
-        # brain_mri_ensemble/metrics.json vs ml/artifacts/brain_mri/metrics.json.
-        value: /app/backend/model/model_efficientnet_b0_brain_mri.pt,/app/backend/model/model_resnet50_brain_mri.pt,/app/backend/model/model_densenet121_brain_mri.pt
+        # 2-way ensemble (soft-voted): beats the single EfficientNet-B0 baseline
+        # on every metric on the held-out test split (84.9% vs 82.0% accuracy,
+        # macro F1 0.849 vs 0.819, ROC-AUC 0.966 vs 0.956) — see ml/artifacts/
+        # brain_mri_2way_effnet_dense/metrics.json vs ml/artifacts/brain_mri/metrics.json.
+        # NOTE: the 3-way ensemble (+ResNet50, the heaviest checkpoint at ~94MB)
+        # scored higher (87.1%/0.870/0.973) but OOM'd this free-tier 512MB
+        # instance on deploy -- dropped to 2-way to actually fit. ResNet50 stays
+        # available locally (MODEL_CHECKPOINT_BRAIN_MRI's local default in
+        # config.py still auto-discovers all three) for testing on a machine
+        # with more RAM, or if this service is ever upgraded off the free tier.
+        value: /app/backend/model/model_efficientnet_b0_brain_mri.pt,/app/backend/model/model_densenet121_brain_mri.pt
       - key: MODEL_CHECKPOINT_MAMMOGRAPHY
         value: /app/backend/model/model_efficientnet_b0_mammography.pt
       - key: CORS_ORIGINS
