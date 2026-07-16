@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from .config import settings
 from .db import init_db
 from .ml import get_analyzer
-from .routers import datasets, images, inference, patients, studies
+from .routers import auth, dashboard, datasets, images, inference, patients, studies
 
 
 @asynccontextmanager
@@ -42,6 +42,8 @@ app.include_router(patients.router)
 app.include_router(datasets.router)
 app.include_router(studies.router)
 app.include_router(images.router)
+app.include_router(auth.router)
+app.include_router(dashboard.router)
 
 
 @app.get("/health", tags=["meta"])

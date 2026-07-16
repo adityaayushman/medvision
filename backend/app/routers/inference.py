@@ -39,15 +39,15 @@ def _png(img: np.ndarray) -> bytes:
     return buf.tobytes()
 
 
-@router.post("/analyze", response_model=AnalyzeResponse)
-async def analyze(
-    file: UploadFile = File(...),
-    patient_id: Optional[int] = Form(None),
-    modality: Optional[str] = Form(None),
-    analyzer: AnalyzerService = Depends(get_analyzer),
-    session: Session = Depends(get_session),
+def _analyze_and_persist(
+    image_bytes: bytes,
+    patient_id: Optional[int],
+    modality: Optional[str],
+    org_id: Optional[int],
+    analyzer: AnalyzerService,
+    session: Session,
 ) -> AnalyzeResponse:
-    image = _decode(await file.read())
+    image = _decode(image_bytes)
     payload, result, overlay = analyzer.analyze(image, modality=modality)
 
     meta = payload["processing_metadata"]
@@ -65,6 +65,8 @@ async def analyze(
         processing_time_ms=meta.get("processing_time_ms"),
         inference_time_ms=meta.get("inference_time_ms"),
         segmentation_success=meta.get("segmentation_success"),
+        org_id=org_id,
+        review_status="pending" if org_id is not None else None,
     )
     session.add(study)
     session.commit()
@@ -121,3 +123,14 @@ async def analyze(
         pipeline_steps=payload["pipeline_steps"],
         processing_metadata=meta,
     )
+
+
+@router.post("/analyze", response_model=AnalyzeResponse)
+async def analyze(
+    file: UploadFile = File(...),
+    patient_id: Optional[int] = Form(None),
+    modality: Optional[str] = Form(None),
+    analyzer: AnalyzerService = Depends(get_analyzer),
+    session: Session = Depends(get_session),
+) -> AnalyzeResponse:
+    return _analyze_and_persist(await file.read(), patient_id, modality, None, analyzer, session)

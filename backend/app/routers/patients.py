@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
 from ..db import get_session
-from ..models_db import Patient, Prediction, Study, StudyImage
+from ..models_db import Patient, Prediction, Study, StudyImage, User
 from ..schemas import PatientCreate, PatientRead, PredictionRead, StudyRead
 
 router = APIRouter(prefix="/api/patients", tags=["patients"])
@@ -45,15 +45,22 @@ def _patient_to_read(patient: Patient, session: Session) -> PatientRead:
 
 @router.get("", response_model=List[PatientRead])
 def list_patients(session: Session = Depends(get_session)):
-    patients = session.exec(select(Patient).order_by(Patient.created_at.desc())).all()
+    patients = session.exec(
+        select(Patient).where(Patient.org_id.is_(None)).order_by(Patient.created_at.desc())
+    ).all()
     return [_patient_to_read(p, session) for p in patients]
+
+
+def _get_public_patient(patient_id: int, session: Session) -> Patient:
+    patient = session.get(Patient, patient_id)
+    if not patient or patient.org_id is not None:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    return patient
 
 
 @router.get("/{patient_id}", response_model=PatientRead)
 def get_patient(patient_id: int, session: Session = Depends(get_session)):
-    patient = session.get(Patient, patient_id)
-    if not patient:
-        raise HTTPException(status_code=404, detail="Patient not found")
+    patient = _get_public_patient(patient_id, session)
     return _patient_to_read(patient, session)
 
 
@@ -80,6 +87,10 @@ def _study_to_read(study: Study, session: Session) -> StudyRead:
     if study.patient_id:
         patient = session.get(Patient, study.patient_id)
         patient_name = patient.name if patient else None
+    reviewed_by = None
+    if study.reviewed_by_user_id:
+        reviewer = session.get(User, study.reviewed_by_user_id)
+        reviewed_by = reviewer.email if reviewer else None
     return StudyRead(
         id=study.id,
         patient_id=study.patient_id,
@@ -94,14 +105,20 @@ def _study_to_read(study: Study, session: Session) -> StudyRead:
         image_url=url("original") or url("rois") or "",
         annotated_url=url("rois"),
         prediction=prediction,
+        org_id=study.org_id,
+        review_status=study.review_status,
+        reviewed_by=reviewed_by,
+        review_note=study.review_note,
+        reviewed_at=study.reviewed_at,
     )
 
 
 @router.get("/{patient_id}/timeline", response_model=List[StudyRead])
 def patient_timeline(patient_id: int, session: Session = Depends(get_session)):
-    if not session.get(Patient, patient_id):
-        raise HTTPException(status_code=404, detail="Patient not found")
+    _get_public_patient(patient_id, session)
     studies = session.exec(
-        select(Study).where(Study.patient_id == patient_id).order_by(Study.uploaded_at)
+        select(Study)
+        .where(Study.patient_id == patient_id, Study.org_id.is_(None))
+        .order_by(Study.uploaded_at)
     ).all()
     return [_study_to_read(s, session) for s in studies]
