@@ -27,6 +27,15 @@ _NEW_STUDY_COLUMNS = [
     ("processing_time_ms", "FLOAT"),
     ("inference_time_ms", "FLOAT"),
     ("segmentation_success", "BOOLEAN"),
+    ("org_id", "INTEGER"),
+    ("review_status", "VARCHAR"),
+    ("reviewed_by_user_id", "INTEGER"),
+    ("review_note", "VARCHAR"),
+    ("reviewed_at", "TIMESTAMP"),
+]
+
+_NEW_PATIENT_COLUMNS = [
+    ("org_id", "INTEGER"),
 ]
 
 
@@ -39,10 +48,20 @@ def _migrate_study_columns() -> None:
             pass
 
 
+def _migrate_patient_columns() -> None:
+    for name, sql_type in _NEW_PATIENT_COLUMNS:
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE patient ADD COLUMN {name} {sql_type}"))
+        except Exception:
+            pass
+
+
 def init_db() -> None:
     from . import models_db
     SQLModel.metadata.create_all(engine)
     _migrate_study_columns()
+    _migrate_patient_columns()
 
 
 def get_session():

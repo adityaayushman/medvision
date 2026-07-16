@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel
+
+ReviewStatus = Literal["pending", "in-review", "reviewed", "flagged"]
 
 
 class PatientCreate(BaseModel):
@@ -46,6 +48,11 @@ class StudyRead(BaseModel):
     image_url: str
     annotated_url: Optional[str] = None
     prediction: Optional[PredictionRead] = None
+    org_id: Optional[int] = None
+    review_status: Optional[str] = None
+    reviewed_by: Optional[str] = None
+    review_note: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
 
 
 class AnalyzeResponse(BaseModel):
@@ -100,6 +107,56 @@ class ReportRead(BaseModel):
     inference_time_ms: Optional[float] = None
     prediction: Optional[ReportPrediction] = None
     disclaimer: str
+
+
+class OrgSignup(BaseModel):
+    org_name: str
+    email: str
+    password: str
+    name: Optional[str] = None
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class UserCreate(BaseModel):
+    email: str
+    password: str
+    role: str = "radiologist"
+    name: Optional[str] = None
+
+
+class UserRead(BaseModel):
+    id: int
+    org_id: int
+    email: str
+    role: str
+    name: Optional[str] = None
+    created_at: datetime
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserRead
+
+
+class ReviewStatusUpdate(BaseModel):
+    review_status: ReviewStatus
+    note: Optional[str] = None
+
+
+class AuditLogRead(BaseModel):
+    id: int
+    actor_user_id: int
+    actor_email: Optional[str] = None
+    action: str
+    target_type: str
+    target_id: int
+    meta: Optional[Dict] = None
+    created_at: datetime
 
 
 class DatasetSpecRead(BaseModel):

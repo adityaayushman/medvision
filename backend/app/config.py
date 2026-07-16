@@ -26,6 +26,8 @@ class Settings:
     cors_origins: List[str] = field(default_factory=lambda: os.getenv(
         "CORS_ORIGINS", "http://localhost:3000"
     ).split(","))
+    jwt_secret: str = os.getenv("JWT_SECRET", "dev-insecure-secret-change-me-in-production-please")
+    jwt_expires_minutes: int = int(os.getenv("JWT_EXPIRES_MINUTES", "480"))
 
     def __post_init__(self) -> None:
         self.storage_dir.mkdir(parents=True, exist_ok=True)

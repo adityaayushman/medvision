@@ -10,12 +10,41 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+class Organization(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
+class User(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    org_id: int = Field(foreign_key="organization.id", index=True)
+    email: str = Field(index=True, unique=True)
+    password_hash: str
+    role: str = "radiologist"
+    name: Optional[str] = None
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
+class AuditLog(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    org_id: int = Field(index=True)
+    actor_user_id: int = Field(index=True)
+    action: str
+    target_type: str
+    target_id: int
+    meta: Optional[str] = None
+    created_at: datetime = Field(default_factory=_utcnow, index=True)
+
+
 class Patient(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     sex: Optional[str] = None
     birth_year: Optional[int] = None
     created_at: datetime = Field(default_factory=_utcnow)
+
+    org_id: Optional[int] = Field(default=None, foreign_key="organization.id", index=True)
 
     studies: List["Study"] = Relationship(back_populates="patient")
 
@@ -38,6 +67,12 @@ class Study(SQLModel, table=True):
     processing_time_ms: Optional[float] = None
     inference_time_ms: Optional[float] = None
     segmentation_success: Optional[bool] = None
+
+    org_id: Optional[int] = Field(default=None, foreign_key="organization.id", index=True)
+    review_status: Optional[str] = None
+    reviewed_by_user_id: Optional[int] = Field(default=None, foreign_key="user.id")
+    review_note: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
 
     patient: Optional[Patient] = Relationship(back_populates="studies")
     prediction: Optional["Prediction"] = Relationship(back_populates="study")
