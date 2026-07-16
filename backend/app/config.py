@@ -16,7 +16,13 @@ class Settings:
     modality: str = os.getenv("MEDCHRON_MODALITY", "chest_xray")
     model_checkpoint_brain_mri: str = os.getenv(
         "MODEL_CHECKPOINT_BRAIN_MRI",
-        str(REPO_ROOT / "ml" / "artifacts" / "brain_mri" / "model_efficientnet_b0.pt"),
+        # Comma-separated: AnalyzerService filters to whichever of these
+        # actually exist on disk, so this degrades to the single existing
+        # EfficientNet-B0 checkpoint until the ensemble members are trained,
+        # then upgrades to the 3-way ensemble automatically — no config
+        # change needed once training finishes.
+        ",".join(str(REPO_ROOT / "ml" / "artifacts" / "brain_mri" / f"model_{b}.pt")
+                  for b in ("efficientnet_b0", "resnet50", "densenet121")),
     )
     model_checkpoint_mammography: str = os.getenv(
         "MODEL_CHECKPOINT_MAMMOGRAPHY",

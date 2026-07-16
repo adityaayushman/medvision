@@ -90,17 +90,22 @@ class AnalyzerService:
             self.predictors[modality] = self._maybe_load_predictor(ckpt_path, modality)
 
     @staticmethod
-    def _maybe_load_predictor(ckpt_path: str, modality: str):
-        if not ckpt_path:
+    def _maybe_load_predictor(ckpt_spec: str, modality: str):
+        if not ckpt_spec:
             return None
-        ckpt = Path(ckpt_path)
-        if not ckpt.exists():
-            print(f"[ml] No checkpoint at {ckpt} for modality={modality!r} — preprocess-only for this modality.")
+        candidates = [p.strip() for p in ckpt_spec.split(",") if p.strip()]
+        existing = [p for p in candidates if Path(p).exists()]
+        if not existing:
+            print(f"[ml] No checkpoint(s) at {candidates} for modality={modality!r} — preprocess-only for this modality.")
             return None
         try:
-            from medchron.models import Predictor
-            print(f"[ml] Loading {modality} checkpoint {ckpt}")
-            return Predictor(str(ckpt))
+            if len(existing) == 1:
+                from medchron.models import Predictor
+                print(f"[ml] Loading {modality} checkpoint {existing[0]}")
+                return Predictor(existing[0])
+            from medchron.models import EnsemblePredictor
+            print(f"[ml] Loading {modality} ensemble ({len(existing)} checkpoints): {existing}")
+            return EnsemblePredictor(existing)
         except Exception as exc:
             print(f"[ml] Could not load {modality} model ({exc}); preprocess-only for this modality.")
             return None
@@ -149,7 +154,7 @@ class AnalyzerService:
         overlay = None
         if predictor is not None and result.quality.passed:
             overlay, prediction = predictor.explain(image_bgr)
-            prediction["backbone"] = predictor.model_config.backbone
+            prediction["backbone"] = predictor.backbone
             payload["prediction"] = prediction
             payload["processing_metadata"]["inference_time_ms"] = prediction.get("inference_time_ms")
 

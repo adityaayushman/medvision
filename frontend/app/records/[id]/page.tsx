@@ -139,6 +139,23 @@ export default function StudyReportPage({ params }: { params: Promise<{ id: stri
                   </div>
                 ))}
             </div>
+            {report.prediction.per_model && report.prediction.per_model.length > 0 && (
+              <div className="mt-4 border-t border-line pt-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-4">
+                  Model agreement (ensemble members)
+                </p>
+                <div className="space-y-1.5">
+                  {report.prediction.per_model.map((m) => (
+                    <div key={m.backbone} className="flex items-center justify-between text-sm">
+                      <span className="text-ink-3">{m.backbone}</span>
+                      <span className="capitalize">
+                        {m.label} <span className="text-ink-4">({pct(m.confidence)})</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <p className="text-sm text-ink-4">No prediction available for this study.</p>

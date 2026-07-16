@@ -95,6 +95,7 @@ class Prediction(SQLModel, table=True):
     probabilities: str = "{}"
     backbone: str = ""
     heatmap_path: Optional[str] = None
+    per_model: Optional[str] = None
     created_at: datetime = Field(default_factory=_utcnow)
 
     study: Optional[Study] = Relationship(back_populates="prediction")

@@ -8,8 +8,8 @@ from .backbone import (
     unfreeze_top_fraction,
 )
 from .dataset import MedChronDataset, Task, build_dataloaders, build_transforms
-from .evaluate import compute_metrics, compute_multilabel_metrics, evaluate_checkpoint
-from .inference import Predictor
+from .evaluate import compute_metrics, compute_multilabel_metrics, evaluate_checkpoint, evaluate_ensemble
+from .inference import EnsemblePredictor, Predictor
 from .train import TrainConfig, train
 
 __all__ = [
@@ -28,5 +28,7 @@ __all__ = [
     "compute_metrics",
     "compute_multilabel_metrics",
     "evaluate_checkpoint",
+    "evaluate_ensemble",
     "Predictor",
+    "EnsemblePredictor",
 ]
