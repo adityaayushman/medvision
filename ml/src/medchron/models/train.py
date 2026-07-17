@@ -255,6 +255,8 @@ def train(
                    tcfg.epochs_head, tcfg.patience, scaler, task=tcfg.task, history=history,
                    start_epoch=s_epoch, best_val=b_val, best_state=b_state, save_state=save_state)
 
+    if resume_phase == "finetune":
+        freeze_backbone(model, tcfg.backbone)
     unfreeze_top_fraction(model, tcfg.finetune_fraction)
     print(f"Phase 2 trainable params: {trainable_parameter_count(model):,}", flush=True)
     opt2 = torch.optim.AdamW(
