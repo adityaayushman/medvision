@@ -8,8 +8,17 @@ CBIS-DDSM ships three separate signals that have to be joined:
     SeriesDescription ("full mammogram images" | "cropped images" |
     "ROI mask images")
 
-Only "full mammogram images" are used (not the cropped lesion patches or ROI
-masks) — the same whole-image classification task as the other modalities.
+By default only "full mammogram images" are used (not the cropped lesion
+patches or ROI masks) — the same whole-image classification task as the
+other modalities. Pass --series cropped to instead build the manifest from
+the lesion-cropped patches: at the model's 224x224 input size, a full
+mammogram shrinks a lesion (often a few % of the frame) to a handful of
+pixels, destroying the texture that distinguishes benign from malignant;
+the cropped patches keep that signal intact. Each cropped-image PatientID
+is the full-image join key plus a trailing "_N" abnormality index (e.g.
+"Mass-Training_P_01265_RIGHT_MLO_1"), stripped before joining against the
+case-description labels — one row per abnormality, so a case with multiple
+abnormalities yields multiple (patient-safe-split) samples.
 
 CBIS-DDSM has no "Normal" cases (every case has an annotated abnormality), so
 unlike MIAS this is a 2-class task: Benign vs Malignant.
@@ -17,17 +26,25 @@ BENIGN_WITHOUT_CALLBACK is folded into Benign. A handful of images have
 multiple abnormalities with different severities; the most severe one wins
 (if any abnormality on the image is malignant, the image is labeled
 Malignant) — standard practice for whole-image CBIS-DDSM classification.
+This most-severe-wins rule only applies to --series full (one row per
+image); --series cropped is already one row per abnormality.
 
 Usage:
     python ml/scripts/prepare_cbis_ddsm.py \
         --raw-dir ml/data/mammography/cbis_raw \
         --out-dir ml/data/mammography/cbis_prepared
+
+    python ml/scripts/prepare_cbis_ddsm.py \
+        --raw-dir ml/data/mammography/cbis_raw \
+        --out-dir ml/data/mammography/cbis_cropped_prepared \
+        --series cropped
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -76,7 +93,12 @@ def main() -> None:
     ap.add_argument("--out-dir", default="ml/data/mammography/cbis_prepared")
     ap.add_argument("--val-size", type=float, default=0.15)
     ap.add_argument("--test-size", type=float, default=0.15)
+    ap.add_argument(
+        "--series", choices=["full", "cropped"], default="full",
+        help="'full' = whole mammograms (default); 'cropped' = lesion-cropped patches",
+    )
     args = ap.parse_args()
+    series_desc = "full mammogram images" if args.series == "full" else "cropped images"
 
     raw_dir = Path(args.raw_dir)
     out_dir = Path(args.out_dir)
@@ -89,25 +111,28 @@ def main() -> None:
     print("Loading dicom_info.csv...")
     metadata_dir = raw_dir / "csv" if (raw_dir / "csv").exists() else raw_dir
     dinfo = pd.read_csv(metadata_dir / "dicom_info.csv")
-    full = dinfo[dinfo["SeriesDescription"] == "full mammogram images"]
-    print(f"  {len(full)} 'full mammogram images' rows")
+    rows = dinfo[dinfo["SeriesDescription"] == series_desc]
+    print(f"  {len(rows)} '{series_desc}' rows")
 
     samples: list[Sample] = []
     missing_file = 0
     unlabeled = 0
-    for _, row in full.iterrows():
-        key = row["PatientID"]
+    for _, row in rows.iterrows():
+        raw_key = row["PatientID"]
+        # cropped-image PatientIDs carry a trailing "_N" abnormality index
+        # (e.g. "..._RIGHT_MLO_1") that full-image keys don't have.
+        key = re.sub(r"_\d+$", "", raw_key) if args.series == "cropped" else raw_key
         label = labels.get(key)
         if label is None:
             unlabeled += 1
             continue
-       
+
         rel = str(row["image_path"]).split("CBIS-DDSM/", 1)[-1]
         img_path = raw_dir / rel
         if not img_path.exists():
             missing_file += 1
             continue
-        
+
         patient_id = key.split("_P_")[-1].split("_")[0]
         samples.append(Sample(str(img_path), label, patient_id=f"P_{patient_id}"))
 
