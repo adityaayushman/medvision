@@ -36,3 +36,19 @@ services:
         value: /app/backend/model/model_efficientnet_b0_mammography.pt
       - key: CORS_ORIGINS
         value: https://medchron-ai.vercel.app,http://localhost:3000
+      - key: JWT_SECRET
+        # Render generates this once and keeps it stable across deploys, so
+        # it never lands in this (public) repo. Without it, config.py falls
+        # back to a hardcoded dev default that anyone reading the source can
+        # use to forge a valid admin token for /dashboard.
+        generateValue: true
+      - key: DATABASE_URL
+        # Set manually in the Render dashboard (Environment tab) -- it's a
+        # secret, so sync: false keeps it out of the repo. Point it at the
+        # Supabase/Postgres instance (psycopg2-binary is already in
+        # backend/requirements.txt, and db.py normalizes postgres:// ->
+        # postgresql:// and enables pool_pre_ping for hosted Postgres).
+        # WITHOUT this, the backend silently falls back to SQLite on the
+        # container's ephemeral disk: every redeploy or idle-restart wipes
+        # all accounts, patients, studies, and audit logs.
+        sync: false
