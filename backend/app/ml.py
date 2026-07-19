@@ -1,6 +1,7 @@
 
 from __future__ import annotations
 
+import gc
 import time
 from functools import lru_cache
 from pathlib import Path
@@ -83,45 +84,76 @@ class AnalyzerService:
         self.configs: Dict[str, PreprocessConfig] = {}
         self.pipelines: Dict[str, MedicalImagePipeline] = {}
         self.predictors: Dict[str, Optional[object]] = {}
+        # Ensemble checkpoints (2+ paths) for a modality are NOT loaded here.
+        # This service loads every configured modality eagerly at startup, so
+        # holding a 2-3 model ensemble resident permanently means it's stacked
+        # in memory on top of every other modality for the process's whole
+        # lifetime -- confirmed empirically to OOM/crash-loop this
+        # deployment's 512MB free-tier ceiling (see git log: the brain MRI
+        # ensemble). Modalities listed here instead load fresh per request in
+        # analyze() and are discarded immediately after -- see _lazy_ckpts.
+        self._lazy_ckpts: Dict[str, List[str]] = {}
         for modality, ckpt_path in MODALITY_CHECKPOINTS.items():
             cfg = get_config(modality)
             self.configs[modality] = cfg
             self.pipelines[modality] = MedicalImagePipeline(cfg)
-            self.predictors[modality] = self._maybe_load_predictor(ckpt_path, modality)
+            predictor, lazy_paths = self._resolve_predictor(ckpt_path, modality)
+            self.predictors[modality] = predictor
+            if lazy_paths:
+                self._lazy_ckpts[modality] = lazy_paths
 
     @staticmethod
-    def _maybe_load_predictor(ckpt_spec: str, modality: str):
+    def _resolve_predictor(ckpt_spec: str, modality: str):
+        """Returns (predictor_or_None, lazy_ckpt_paths_or_None). Exactly one
+        of the two is non-None when a usable checkpoint exists."""
         if not ckpt_spec:
-            return None
+            return None, None
         candidates = [p.strip() for p in ckpt_spec.split(",") if p.strip()]
         existing = [p for p in candidates if Path(p).exists()]
         if not existing:
             print(f"[ml] No checkpoint(s) at {candidates} for modality={modality!r} — preprocess-only for this modality.")
-            return None
+            return None, None
+        if len(existing) > 1:
+            print(f"[ml] {modality} ensemble ({len(existing)} checkpoints) will load per-request, not at startup: {existing}")
+            return None, existing
         try:
-            if len(existing) == 1:
-                from medchron.models import Predictor
-                print(f"[ml] Loading {modality} checkpoint {existing[0]}")
-                return Predictor(existing[0])
-            from medchron.models import EnsemblePredictor
-            print(f"[ml] Loading {modality} ensemble ({len(existing)} checkpoints): {existing}")
-            return EnsemblePredictor(existing)
+            from medchron.models import Predictor
+            print(f"[ml] Loading {modality} checkpoint {existing[0]}")
+            return Predictor(existing[0]), None
         except Exception as exc:
             print(f"[ml] Could not load {modality} model ({exc}); preprocess-only for this modality.")
+            return None, None
+
+    @staticmethod
+    def _load_ensemble(paths: List[str], modality: str):
+        try:
+            from medchron.models import EnsemblePredictor
+            print(f"[ml] Loading {modality} ensemble ({len(paths)} checkpoints) for this request")
+            return EnsemblePredictor(paths)
+        except Exception as exc:
+            print(f"[ml] Could not load {modality} ensemble ({exc}); preprocess-only for this request.")
             return None
 
     def available_modalities(self) -> Dict[str, bool]:
-        return {m: (p is not None) for m, p in self.predictors.items()}
+        return {
+            m: (self.predictors.get(m) is not None or m in self._lazy_ckpts)
+            for m in self.pipelines
+        }
 
     @property
     def model_loaded(self) -> bool:
-        return self.predictors.get(settings.modality) is not None
+        m = settings.modality
+        return self.predictors.get(m) is not None or m in self._lazy_ckpts
 
     def analyze(self, image_bgr: np.ndarray, modality: Optional[str] = None):
         modality = modality if modality in self.pipelines else settings.modality
         pipeline = self.pipelines[modality]
-        predictor = self.predictors[modality]
         config = self.configs[modality]
+
+        predictor = self.predictors[modality]
+        is_lazy = predictor is None and modality in self._lazy_ckpts
+        if is_lazy:
+            predictor = self._load_ensemble(self._lazy_ckpts[modality], modality)
 
         t0 = time.perf_counter()
         result: PipelineResult = pipeline.run(image_bgr)
@@ -157,6 +189,10 @@ class AnalyzerService:
             prediction["backbone"] = predictor.backbone
             payload["prediction"] = prediction
             payload["processing_metadata"]["inference_time_ms"] = prediction.get("inference_time_ms")
+
+        if is_lazy:
+            del predictor
+            gc.collect()
 
         return payload, result, overlay
 
