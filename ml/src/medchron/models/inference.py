@@ -16,6 +16,7 @@ from ..explain.gradcam import GradCAM, overlay_heatmap
 from ..imaging import model_image
 from .backbone import ModelConfig, create_model, default_gradcam_layer
 from .dataset import build_transforms
+from .detect import SpatialBBoxNet
 
 
 class Predictor:
@@ -156,3 +157,85 @@ class EnsemblePredictor:
         result["model_version"] = self.model_version
         result["inference_time_ms"] = inference_time_ms
         return overlay, result
+
+
+class _BBoxRegressor:
+    """Loads a bbox_regression checkpoint (see models.detect.SpatialBBoxNet)
+    and predicts a single normalized (cx, cy, w, h) box. Separate from
+    Predictor because the checkpoint has no class_to_idx and the model's
+    output is already constrained to [0,1] internally (spatial soft-argmax
+    for the center, sigmoid for width/height) -- not a classifier."""
+
+    def __init__(self, ckpt_path: str, device: Optional[torch.device] = None) -> None:
+        self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        ckpt = torch.load(ckpt_path, map_location=self.device, weights_only=False)
+        self.model = SpatialBBoxNet(pretrained=False).to(self.device)
+        self.model.load_state_dict(ckpt["state_dict"])
+        self.model.eval()
+        self.preprocess = PreprocessConfig(**ckpt.get("preprocess", {}))
+        self._tf = build_transforms(train=False, input_size=self.preprocess.model_input_size[0])
+
+    @torch.no_grad()
+    def predict_box(self, image_bgr: np.ndarray) -> Tuple[float, float, float, float]:
+        rgb = model_image(image_bgr, self.preprocess)
+        tensor = self._tf(Image.fromarray(rgb)).unsqueeze(0).to(self.device)
+        cx, cy, w, h = self.model(tensor)[0].cpu().tolist()
+        return cx, cy, w, h
+
+
+class LocalizedPredictor:
+    """Two-stage mammography pipeline: a bbox regressor locates the lesion in
+    a full mammogram, then the (unmodified) cropped-patch Predictor classifies
+    the crop. Exists because a classifier trained on lesion-cropped patches
+    can't be fed a full mammogram directly -- see ROADMAP / the mammography
+    v2 write-up for why full-image classification underperforms."""
+
+    def __init__(
+        self,
+        bbox_ckpt_path: str,
+        classifier_ckpt_path: str,
+        device: Optional[torch.device] = None,
+        pad_frac: float = 0.15,
+    ) -> None:
+        self._detector = _BBoxRegressor(bbox_ckpt_path, device=device)
+        self.classifier = Predictor(classifier_ckpt_path, device=device)
+        self.pad_frac = pad_frac
+
+        self.class_to_idx = self.classifier.class_to_idx
+        self.idx_to_class = self.classifier.idx_to_class
+        self.backbone = "localized"
+        self.model_version = f"localized(bbox+{self.classifier.backbone})"
+
+    def _crop(self, image_bgr: np.ndarray) -> Tuple[np.ndarray, Dict]:
+        h_img, w_img = image_bgr.shape[:2]
+        cx, cy, w, h = self._detector.predict_box(image_bgr)
+        w = w * (1 + self.pad_frac)
+        h = h * (1 + self.pad_frac)
+        x0 = max(0, int((cx - w / 2) * w_img))
+        x1 = min(w_img, int((cx + w / 2) * w_img))
+        y0 = max(0, int((cy - h / 2) * h_img))
+        y1 = min(h_img, int((cy + h / 2) * h_img))
+        if x1 <= x0 or y1 <= y0:
+            x0, y0, x1, y1 = 0, 0, w_img, h_img
+        box = {"cx": cx, "cy": cy, "w": w, "h": h}
+        return image_bgr[y0:y1, x0:x1], box
+
+    def predict(self, image_bgr: np.ndarray) -> Dict:
+        t0 = time.perf_counter()
+        crop, box = self._crop(image_bgr)
+        result = self.classifier.predict(crop)
+        result["detected_bbox"] = box
+        result["model_version"] = self.model_version
+        result["inference_time_ms"] = round((time.perf_counter() - t0) * 1000, 1)
+        return result
+
+    def explain(
+        self, image_bgr: np.ndarray, class_idx: Optional[int] = None
+    ) -> Tuple[np.ndarray, Dict]:
+        t0 = time.perf_counter()
+        crop, box = self._crop(image_bgr)
+        overlay, prediction = self.classifier.explain(crop, class_idx)
+        prediction["detected_bbox"] = box
+        prediction["model_version"] = self.model_version
+        prediction["inference_time_ms"] = round((time.perf_counter() - t0) * 1000, 1)
+        return overlay, prediction

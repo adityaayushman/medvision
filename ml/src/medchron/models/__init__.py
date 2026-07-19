@@ -8,8 +8,23 @@ from .backbone import (
     unfreeze_top_fraction,
 )
 from .dataset import MedChronDataset, Task, build_dataloaders, build_transforms
-from .evaluate import compute_metrics, compute_multilabel_metrics, evaluate_checkpoint, evaluate_ensemble
-from .inference import EnsemblePredictor, Predictor
+from .detect import (
+    BBoxSample,
+    BBoxTrainConfig,
+    SpatialBBoxNet,
+    evaluate_bbox_checkpoint,
+    read_bbox_manifest,
+    train_bbox_regressor,
+    write_bbox_manifest,
+)
+from .evaluate import (
+    compute_metrics,
+    compute_multilabel_metrics,
+    evaluate_checkpoint,
+    evaluate_ensemble,
+    evaluate_localized_pipeline,
+)
+from .inference import EnsemblePredictor, LocalizedPredictor, Predictor
 from .train import TrainConfig, train
 
 __all__ = [
@@ -29,6 +44,15 @@ __all__ = [
     "compute_multilabel_metrics",
     "evaluate_checkpoint",
     "evaluate_ensemble",
+    "evaluate_localized_pipeline",
     "Predictor",
     "EnsemblePredictor",
+    "LocalizedPredictor",
+    "BBoxSample",
+    "BBoxTrainConfig",
+    "SpatialBBoxNet",
+    "read_bbox_manifest",
+    "write_bbox_manifest",
+    "train_bbox_regressor",
+    "evaluate_bbox_checkpoint",
 ]

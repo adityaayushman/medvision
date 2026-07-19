@@ -195,6 +195,72 @@ def evaluate_checkpoint(
     return metrics
 
 
+def evaluate_localized_pipeline(
+    bbox_ckpt_path: str,
+    classifier_ckpt_path: str,
+    samples: Sequence[Sample],
+    *,
+    split: str = "test",
+    out_dir: Optional[str] = None,
+    device: Optional[str] = None,
+    pad_frac: float = 0.15,
+) -> Dict:
+    """Honest end-to-end evaluation of the two-stage mammography pipeline
+    (bbox regressor -> crop -> cropped-patch classifier) on FULL mammograms.
+
+    This is the number that's actually comparable to a full-image classifier
+    baseline: the cropped-patch classifier's own metrics.json is measured on
+    ground-truth crops (a strictly easier setting than the detector's
+    imperfect crops), so it must not be compared against full-image results
+    directly — this function closes that gap by running the real pipeline
+    the way production would.
+
+    Runs image-by-image through LocalizedPredictor (no DataLoader — the crop
+    step depends on each image's own predicted box, so per-image is the
+    honest path, matching production exactly).
+    """
+    import cv2
+
+    from .inference import LocalizedPredictor
+
+    torch_device = None
+    if device is not None and device != "auto":
+        torch_device = torch.device(device)
+    predictor = LocalizedPredictor(
+        bbox_ckpt_path, classifier_ckpt_path, device=torch_device, pad_frac=pad_frac
+    )
+    class_names = [name for name, _ in sorted(predictor.class_to_idx.items(), key=lambda kv: kv[1])]
+
+    eval_samples = [s for s in samples if s.split == split]
+    if not eval_samples:
+        raise ValueError(f"No '{split}' samples to evaluate.")
+
+    y_true, y_pred, y_prob = [], [], []
+    for s in eval_samples:
+        image = cv2.imread(s.path, cv2.IMREAD_COLOR)
+        if image is None:
+            raise FileNotFoundError(f"Could not read image: {s.path}")
+        result = predictor.predict(image)
+        y_true.append(predictor.class_to_idx[s.label])
+        y_pred.append(predictor.class_to_idx[result["label"]])
+        y_prob.append([result["probabilities"][name] for name in class_names])
+
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+    y_prob = np.array(y_prob)
+    metrics = compute_metrics(y_true, y_pred, y_prob, class_names)
+
+    if out_dir is not None:
+        out = Path(out_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "metrics.json").write_text(json.dumps(metrics, indent=2))
+        _save_plots(y_true, y_prob, np.array(metrics["confusion_matrix"]), class_names, out)
+        print(f"Saved localized-pipeline metrics + plots -> {out}")
+
+    print(json.dumps({k: v for k, v in metrics.items() if k != "confusion_matrix"}, indent=2))
+    return metrics
+
+
 def evaluate_ensemble(
     ckpt_paths: Sequence[str],
     samples: Sequence[Sample],
