@@ -196,7 +196,7 @@ def evaluate_checkpoint(
 
 
 def evaluate_localized_pipeline(
-    bbox_ckpt_path: str,
+    localizer_ckpt_path: str,
     classifier_ckpt_path: str,
     samples: Sequence[Sample],
     *,
@@ -206,7 +206,8 @@ def evaluate_localized_pipeline(
     pad_frac: float = 0.15,
 ) -> Dict:
     """Honest end-to-end evaluation of the two-stage mammography pipeline
-    (bbox regressor -> crop -> cropped-patch classifier) on FULL mammograms.
+    (localizer -- a bbox regressor or a segmentation model -- -> crop ->
+    cropped-patch classifier) on FULL mammograms.
 
     This is the number that's actually comparable to a full-image classifier
     baseline: the cropped-patch classifier's own metrics.json is measured on
@@ -227,7 +228,7 @@ def evaluate_localized_pipeline(
     if device is not None and device != "auto":
         torch_device = torch.device(device)
     predictor = LocalizedPredictor(
-        bbox_ckpt_path, classifier_ckpt_path, device=torch_device, pad_frac=pad_frac
+        localizer_ckpt_path, classifier_ckpt_path, device=torch_device, pad_frac=pad_frac
     )
     class_names = [name for name, _ in sorted(predictor.class_to_idx.items(), key=lambda kv: kv[1])]
 
