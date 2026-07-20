@@ -25,6 +25,16 @@ from .evaluate import (
     evaluate_localized_pipeline,
 )
 from .inference import EnsemblePredictor, LocalizedPredictor, Predictor
+from .segment import (
+    SegmentationSample,
+    SegmentationTrainConfig,
+    UNetSegmenter,
+    evaluate_segmenter,
+    mask_to_bbox,
+    read_segmentation_manifest,
+    train_segmenter,
+    write_segmentation_manifest,
+)
 from .train import TrainConfig, train
 
 __all__ = [
@@ -55,4 +65,12 @@ __all__ = [
     "write_bbox_manifest",
     "train_bbox_regressor",
     "evaluate_bbox_checkpoint",
+    "SegmentationSample",
+    "SegmentationTrainConfig",
+    "UNetSegmenter",
+    "read_segmentation_manifest",
+    "write_segmentation_manifest",
+    "train_segmenter",
+    "evaluate_segmenter",
+    "mask_to_bbox",
 ]

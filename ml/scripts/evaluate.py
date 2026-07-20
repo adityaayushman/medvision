@@ -9,12 +9,14 @@ split of a manifest.
         --checkpoint ml/artifacts/brain_mri/model_efficientnet_b0.pt,ml/artifacts/brain_mri/model_resnet50.pt \
         --out-dir ml/artifacts/brain_mri_ensemble
 
-    # localized pipeline (bbox regressor -> crop -> classifier), evaluated
-    # end-to-end on FULL mammograms -- the honest, production-comparable
-    # number for a classifier trained on lesion-cropped patches
+    # localized pipeline (a bbox regressor OR a segmentation model -> crop ->
+    # classifier), evaluated end-to-end on FULL mammograms -- the honest,
+    # production-comparable number for a classifier trained on lesion-cropped
+    # patches. --localizer-checkpoint accepts either checkpoint type -- the
+    # dispatch happens automatically off the checkpoint's "task" marker.
     python ml/scripts/evaluate.py --manifest ml/data/mammography/cbis_prepared/manifest.csv \
         --checkpoint ml/artifacts/mammography_cbis_cropped/model_efficientnet_b0.pt \
-        --bbox-checkpoint ml/artifacts/mammography_bbox/bbox_efficientnet_b0.pt \
+        --localizer-checkpoint ml/artifacts/mammography_segmentation/unet_efficientnet_b0.pt \
         --out-dir ml/artifacts/mammography_localized
 """
 
@@ -31,9 +33,10 @@ def main() -> None:
     ap.add_argument("--manifest", required=True)
     ap.add_argument("--checkpoint", required=True,
                     help="one checkpoint path, or comma-separated paths for an ensemble")
-    ap.add_argument("--bbox-checkpoint", default=None,
-                    help="if set, evaluate the localized pipeline (this bbox regressor -> "
-                         "crop -> --checkpoint as the classifier) instead of --checkpoint alone")
+    ap.add_argument("--localizer-checkpoint", default=None,
+                    help="if set, evaluate the localized pipeline (this checkpoint -- a bbox "
+                         "regressor or a segmentation model -- -> crop -> --checkpoint as the "
+                         "classifier) instead of --checkpoint alone")
     ap.add_argument("--split", default="test", choices=["train", "val", "test"])
     ap.add_argument("--batch-size", type=int, default=16)
     ap.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
@@ -44,9 +47,9 @@ def main() -> None:
     if not any(s.split for s in samples):
         samples = stratified_split(samples)
 
-    if args.bbox_checkpoint:
+    if args.localizer_checkpoint:
         evaluate_localized_pipeline(
-            args.bbox_checkpoint, args.checkpoint, samples,
+            args.localizer_checkpoint, args.checkpoint, samples,
             split=args.split, out_dir=args.out_dir, device=args.device,
         )
         return

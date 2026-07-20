@@ -1,22 +1,31 @@
-"""Build a lesion bounding-box manifest from CBIS-DDSM's ROI mask images.
+"""Build a lesion localization manifest from CBIS-DDSM's ROI mask images --
+either reduced to a bounding box (--target bbox, default) or the raw mask
+paths for pixel-level segmentation training (--target segmentation).
 
 Joins dicom_info.csv's "ROI mask images" rows against the *existing*
 full-image manifest (built by prepare_cbis_ddsm.py, default --series full)
-so the bbox regressor's split assignment is identical to the classifier's
+so the localizer's split assignment is identical to the classifier's
 already patient-safe split -- the two are directly comparable later.
 
-For each ROI mask: threshold to find the nonzero region, normalize the
-bounding box by the mask's own width/height. Masks are pixel-aligned with
-their full mammogram for the large majority of cases (verified: ~97.6%);
-the rest (dimension mismatch between mask and full image) are dropped as a
-known CBIS-DDSM data-quality issue. A full image with multiple abnormality
-masks gets one unioned box covering all of them.
+Masks are pixel-aligned with their full mammogram for the large majority of
+cases (verified: ~97.6%); the rest (dimension mismatch between mask and
+full image) are dropped as a known CBIS-DDSM data-quality issue. A full
+image with multiple abnormality masks gets all of them: --target bbox
+unions them into one covering box, --target segmentation keeps every mask
+path (unioned into one binary mask at load time instead, in
+SegmentationDataset -- see models/segment.py).
 
 Usage:
     python ml/scripts/prepare_cbis_ddsm_bbox.py \
         --raw-dir ml/data/mammography/cbis_raw \
         --manifest ml/data/mammography/cbis_prepared/manifest.csv \
         --out-dir ml/data/mammography/cbis_bbox_prepared
+
+    python ml/scripts/prepare_cbis_ddsm_bbox.py \
+        --raw-dir ml/data/mammography/cbis_raw \
+        --manifest ml/data/mammography/cbis_prepared/manifest.csv \
+        --out-dir ml/data/mammography/cbis_segmentation_prepared \
+        --target segmentation
 """
 
 from __future__ import annotations
@@ -68,10 +77,14 @@ def union_boxes(boxes: list[tuple[float, float, float, float]]) -> tuple[float, 
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Build a bbox manifest from CBIS-DDSM ROI masks")
+    ap = argparse.ArgumentParser(description="Build a bbox or segmentation manifest from CBIS-DDSM ROI masks")
     ap.add_argument("--raw-dir", required=True)
     ap.add_argument("--manifest", required=True, help="existing full-image manifest.csv (path/label/patient_id/split)")
     ap.add_argument("--out-dir", default="ml/data/mammography/cbis_bbox_prepared")
+    ap.add_argument(
+        "--target", choices=["bbox", "segmentation"], default="bbox",
+        help="'bbox' = one unioned box per image (default); 'segmentation' = raw mask paths",
+    )
     args = ap.parse_args()
 
     raw_dir = Path(args.raw_dir)
@@ -97,7 +110,7 @@ def main() -> None:
     roi = dinfo[dinfo["SeriesDescription"] == "ROI mask images"]
     print(f"  {len(roi)} 'ROI mask images' rows")
 
-    per_image_boxes: dict[str, list[tuple[float, float, float, float]]] = {}
+    per_image_masks: dict[str, list[str]] = {}
     dim_mismatch = 0
     no_full_match = 0
     unreadable = 0
@@ -115,28 +128,42 @@ def main() -> None:
             continue
 
         rel = str(row["image_path"]).split("CBIS-DDSM/", 1)[-1]
-        box = mask_bbox(raw_dir / rel)
-        if box is None:
+        mask_path = raw_dir / rel
+        if cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE) is None:
             unreadable += 1
             continue
-        per_image_boxes.setdefault(full_path, []).append(box)
+        per_image_masks.setdefault(full_path, []).append(str(mask_path))
 
-    print(f"Matched {len(per_image_boxes)} full images with a usable box "
+    print(f"Matched {len(per_image_masks)} full images with a usable mask "
           f"({dim_mismatch} dim mismatches, {no_full_match} no full-image match, "
           f"{unreadable} unreadable masks skipped).")
 
-    out_path = out_dir / "bbox_manifest.csv"
-    with open(out_path, "w", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=["path", "cx", "cy", "w", "h", "split"])
-        writer.writeheader()
-        counts = {"train": 0, "val": 0, "test": 0}
-        for path, boxes in per_image_boxes.items():
-            cx, cy, w, h = union_boxes(boxes) if len(boxes) > 1 else boxes[0]
-            split = path_to_split[path]
-            writer.writerow({"path": path, "cx": cx, "cy": cy, "w": w, "h": h, "split": split})
-            counts[split] = counts.get(split, 0) + 1
+    counts = {"train": 0, "val": 0, "test": 0}
+    if args.target == "bbox":
+        out_path = out_dir / "bbox_manifest.csv"
+        with open(out_path, "w", newline="", encoding="utf-8") as fh:
+            writer = csv.DictWriter(fh, fieldnames=["path", "cx", "cy", "w", "h", "split"])
+            writer.writeheader()
+            for path, mask_paths in per_image_masks.items():
+                boxes = [b for b in (mask_bbox(Path(p)) for p in mask_paths) if b is not None]
+                if not boxes:
+                    continue
+                cx, cy, w, h = union_boxes(boxes) if len(boxes) > 1 else boxes[0]
+                split = path_to_split[path]
+                writer.writerow({"path": path, "cx": cx, "cy": cy, "w": w, "h": h, "split": split})
+                counts[split] = counts.get(split, 0) + 1
+        print(f"\nBbox manifest: {out_path} ({sum(counts.values())} samples)")
+    else:
+        out_path = out_dir / "segmentation_manifest.csv"
+        with open(out_path, "w", newline="", encoding="utf-8") as fh:
+            writer = csv.DictWriter(fh, fieldnames=["path", "mask_paths", "split"])
+            writer.writeheader()
+            for path, mask_paths in per_image_masks.items():
+                split = path_to_split[path]
+                writer.writerow({"path": path, "mask_paths": ";".join(mask_paths), "split": split})
+                counts[split] = counts.get(split, 0) + 1
+        print(f"\nSegmentation manifest: {out_path} ({sum(counts.values())} samples)")
 
-    print(f"\nBbox manifest: {out_path} ({len(per_image_boxes)} samples)")
     print("Per-split:", counts)
 
 

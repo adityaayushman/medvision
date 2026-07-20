@@ -183,28 +183,76 @@ class _BBoxRegressor:
         return cx, cy, w, h
 
 
+class _SegmentationLocalizer:
+    """Loads a segmentation checkpoint (see models.segment.UNetSegmenter) and
+    derives a normalized (cx, cy, w, h) box from the predicted mask -- same
+    predict_box(image_bgr) interface as _BBoxRegressor, so LocalizedPredictor
+    doesn't need to know which localizer backs it. Exists because bbox
+    regression plateaued at IoU ~0.05-0.08 (a 4-number target is too sparse a
+    signal for this dataset size); a per-pixel mask gives far denser
+    supervision -- see segment.py's module docstring."""
+
+    def __init__(self, ckpt_path: str, device: Optional[torch.device] = None) -> None:
+        from .segment import UNetSegmenter, mask_to_bbox
+
+        self._mask_to_bbox = mask_to_bbox
+        self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        ckpt = torch.load(ckpt_path, map_location=self.device, weights_only=False)
+        self.model = UNetSegmenter(pretrained=False).to(self.device)
+        self.model.load_state_dict(ckpt["state_dict"])
+        self.model.eval()
+        self.preprocess = PreprocessConfig(**ckpt.get("preprocess", {}))
+        self._tf = build_transforms(train=False, input_size=self.preprocess.model_input_size[0])
+
+    @torch.no_grad()
+    def predict_box(self, image_bgr: np.ndarray) -> Tuple[float, float, float, float]:
+        rgb = model_image(image_bgr, self.preprocess)
+        tensor = self._tf(Image.fromarray(rgb)).unsqueeze(0).to(self.device)
+        mask = torch.sigmoid(self.model(tensor))[0, 0].cpu().numpy()
+        box = self._mask_to_bbox(mask)
+        if box is None:
+            # Nothing above threshold -- fall back to the full frame rather
+            # than crash; LocalizedPredictor's crop clamp handles this the
+            # same way a degenerate bbox-regressor output would.
+            return 0.5, 0.5, 1.0, 1.0
+        return box
+
+
+def _load_localizer(ckpt_path: str, device: Optional[torch.device] = None):
+    """Dispatches on the checkpoint's "task" marker so LocalizedPredictor can
+    be built from either a bbox regressor or a segmentation model with the
+    same constructor call."""
+    probe = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    task = probe.get("task", "bbox_regression")
+    if task == "segmentation":
+        return _SegmentationLocalizer(ckpt_path, device=device)
+    return _BBoxRegressor(ckpt_path, device=device)
+
+
 class LocalizedPredictor:
-    """Two-stage mammography pipeline: a bbox regressor locates the lesion in
-    a full mammogram, then the (unmodified) cropped-patch Predictor classifies
-    the crop. Exists because a classifier trained on lesion-cropped patches
-    can't be fed a full mammogram directly -- see ROADMAP / the mammography
-    v2 write-up for why full-image classification underperforms."""
+    """Two-stage mammography pipeline: a localizer (bbox regressor or
+    segmentation model) locates the lesion in a full mammogram, then the
+    (unmodified) cropped-patch Predictor classifies the crop. Exists because
+    a classifier trained on lesion-cropped patches can't be fed a full
+    mammogram directly -- see ROADMAP / the mammography v2 write-up for why
+    full-image classification underperforms."""
 
     def __init__(
         self,
-        bbox_ckpt_path: str,
+        localizer_ckpt_path: str,
         classifier_ckpt_path: str,
         device: Optional[torch.device] = None,
         pad_frac: float = 0.15,
     ) -> None:
-        self._detector = _BBoxRegressor(bbox_ckpt_path, device=device)
+        self._detector = _load_localizer(localizer_ckpt_path, device=device)
         self.classifier = Predictor(classifier_ckpt_path, device=device)
         self.pad_frac = pad_frac
 
         self.class_to_idx = self.classifier.class_to_idx
         self.idx_to_class = self.classifier.idx_to_class
         self.backbone = "localized"
-        self.model_version = f"localized(bbox+{self.classifier.backbone})"
+        localizer_kind = "segmentation" if isinstance(self._detector, _SegmentationLocalizer) else "bbox"
+        self.model_version = f"localized({localizer_kind}+{self.classifier.backbone})"
 
     def _crop(self, image_bgr: np.ndarray) -> Tuple[np.ndarray, Dict]:
         h_img, w_img = image_bgr.shape[:2]
