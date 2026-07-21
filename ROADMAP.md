@@ -1,13 +1,13 @@
 # MedChron AI — Roadmap
 
-This document tracks the platform's version progression beyond the current
-release. Each phase is scoped by what it actually takes to build and verify —
-not just what it takes to describe — so priorities can be set honestly.
+This document tracks the platform's version progression. Each phase is
+scoped by what it actually takes to build and verify — not just what it
+takes to describe — so priorities can be set honestly. v1-v4 are live;
+what's below their headers is what actually happened, not a plan.
 
-> Current release (v1): chest X-ray only, single EfficientNet-B0 model,
-> quality-gated inference, Grad-CAM, patient records, live at
-> [medchron-ai.vercel.app](https://medchron-ai.vercel.app). See `README.md`
-> for the present-tense status table.
+> Live at [medchron-ai.vercel.app](https://medchron-ai.vercel.app)
+> (frontend) + a FastAPI backend on Render. See `README.md` for the
+> present-tense status table.
 
 ---
 
@@ -31,16 +31,15 @@ unmodified while each phase lands. Concretely:
 ---
 
 ## Version 2 — Multi-Modality Expansion
-**Status: in progress, live at [medchron-ai.vercel.app/analyze](https://medchron-ai.vercel.app/analyze).**
-The architecture was built for this — `PRESETS` in
-[`config.py`](ml/src/medchron/config.py) already had `brain_mri` and
-`mammography` entries waiting for a trained model.
+**Status: chest X-ray and brain MRI live. Mammography remains the platform's
+one open, honestly-documented gap** — not for lack of trying: three
+independent modeling attempts, each a real, evaluated result.
 
 | Modality | Status | Real result |
 |---|---|---|
 | Chest X-ray | ✅ Live (v1) | accuracy 64%, ROC-AUC 0.825 |
 | Brain MRI (4-class tumor classification) | ✅ Live | accuracy 82.0%, macro F1 0.819, ROC-AUC 0.956 (held-out test, sartajbhuvaji/brain-tumor-classification-mri, 3,264 images) |
-| Mammography (Normal/Benign/Malignant) | ⏸️ Scaffolded, **not serving predictions** | trained on MIAS (322 images) — test accuracy 59.2%, macro F1 0.37, *below* the 63.3% majority-class baseline. Not deployed: a model that loses to a constant guess doesn't ship, per the same principle behind the quality gate. Needs CBIS-DDSM (~10k+ images) to be a real classifier; DIP pipeline + quality gate work today, classification is pending better data. |
+| Mammography (Benign/Malignant) | ⏸️ **Not serving predictions** | see below |
 
 A cross-modality bug was caught and fixed along the way: quality-gate
 thresholds (blur/brightness/contrast) were implicitly tuned for chest X-ray
@@ -48,43 +47,90 @@ and don't transfer — verified this rejected 60% of genuinely fine brain MRI
 scans before `min_focus` became a per-modality config value instead of a
 global constant.
 
-**Build shape:** a modality switcher on the Analyze page → routes to the
-matching config preset + checkpoint. The DIP pipeline, quality gate, Grad-CAM,
-and patient records all already work modality-agnostically — this phase is
-almost entirely data + training, not new engineering.
+**Mammography — the full honest history**, because it's the platform's
+best example of the honest-gate principle actually being followed rather
+than just stated:
+
+1. **MIAS (322 images), full mammograms**: 59.2% acc, macro F1 0.37 — *below*
+   the 63.3% majority-class baseline. Not deployed.
+2. **CBIS-DDSM (2,857 images), full mammograms**: 59.1% acc, ROC-AUC 0.642 —
+   technically beats the 55.0% majority baseline, but thinly, and malignant
+   recall was only 43.7%. Not deployed (see `ml/artifacts/mammography_cbis`).
+3. **CBIS-DDSM, lesion-*cropped* patches**: 71.1% acc, 0.785 AUC, 66.4%
+   malignant recall — a real, clear win. Root cause of (1) and (2)'s
+   weakness identified: a full mammogram shrinks the lesion to a handful of
+   pixels at the model's 224×224 input size, destroying the texture that
+   distinguishes benign from malignant. **Still not deployed** — this model
+   needs an already-cropped lesion image, and the app's upload flow (like
+   every other modality) provides a full mammogram.
+4. **Automatic crop, attempt 1 — bounding-box regression**
+   (`ml/src/medchron/models/detect.py`): three architecture iterations
+   (naive pooled head → spatial soft-argmax → attention-weighted size
+   pooling), test IoU 0.043 → 0.068. Full detect→crop→classify pipeline:
+   49.8% acc / 0.486 AUC — *below* both baselines.
+5. **Automatic crop, attempt 2 — U-Net pixel segmentation**
+   (`ml/src/medchron/models/segment.py`): EfficientNet-B0 encoder + a
+   skip-connected decoder, trained on the same CBIS-DDSM ROI masks. Test
+   Dice 0.254 — roughly 4x better than attempt 4's IoU by any reasonable
+   comparison, and visually confirmed on real predictions. Full pipeline:
+   48.9% acc / 0.541 AUC — **still below baseline**, despite the much better
+   localizer. Diagnosis: localization was never the actual bottleneck — the
+   classifier (step 3) was trained only on official hand-verified crops and
+   doesn't generalize to *any* automatically-derived crop, regardless of how
+   accurately it's centered. Two different localizer architectures hit the
+   same wall because neither touched that mismatch.
+
+**Next step, if revisited:** retrain the classifier on crops the way the
+pipeline actually produces them (segmenter output + padding), not on
+official ground-truth crops — a different experiment from "improve the
+localizer," which is what both attempts 4 and 5 tried.
 
 ## Version 3 — AI-Assisted Reporting & Model Improvements
-**Feasibility: High.** Natural extension of the existing prediction payload.
+**Status: report drafting live. Ensemble built and evaluated, not
+deployable on the current hosting tier.**
 
-- **AI-assisted report drafting** — turn the existing `processing_metadata` +
-  `quality` + `prediction` payload into a structured draft report (PDF/text),
-  explicitly labeled **"AI Draft — Requires Clinician Review"** with no
-  auto-finalization path. This is a reporting/export feature, not a new
-  diagnostic claim.
-- **Multi-model ensemble** — the backbone layer already supports
-  VGG16/ResNet50/DenseNet121/EfficientNet-B0 interchangeably
-  ([`backbone.py`](ml/src/medchron/models/backbone.py)); ensembling means
-  training 2-3 backbones on the same split and averaging/voting at inference,
-  surfaced as an "ensemble confidence" alongside the existing single-model one.
+- **AI-assisted report drafting** — ✅ **live.** The prediction payload
+  renders as a structured draft report (PDF/text), labeled **"AI Draft —
+  Requires Clinician Review"**, no auto-finalization path.
+- **Multi-model ensemble** — ✅ built (`EnsemblePredictor`, soft-voting
+  across 2-3 backbones on the same split) and ✅ evaluated: a 3-way brain
+  MRI ensemble clearly beat the single-model baseline. ⛔ **Not deployed.**
+  Two live deploy attempts (3-way, then 2-way) OOM'd / crash-looped Render's
+  512MB free-tier instance. Root cause isolated with real measurements,
+  not guesses: `AnalyzerService` eagerly loads every modality at startup, so
+  a permanently-resident ensemble stacks on top of everything else for the
+  process's whole lifetime — fixed with load-per-request instead (see
+  `backend/app/ml.py`). That *reduced* memory waste but didn't solve the
+  underlying problem: measured with the exact CPU-only torch build Render
+  runs, the ensemble's own marginal footprint alone is ~490MB (2-way) to
+  ~583MB (3-way) — at or over the entire 512MB ceiling before counting
+  anything else in the process. This is a real capacity ceiling, not a
+  scheduling bug; shipping the ensemble needs either a paid tier with more
+  RAM or a smaller/quantized backbone, not more loading-strategy cleverness.
 
 ## Version 4 — Clinical Dashboard for Hospitals
-**Feasibility: Medium.** Buildable solo, but the first phase that requires
-a genuinely new subsystem: **the platform currently has zero authentication.**
-Before any multi-user/organizational feature, that has to exist — this
-is the actual blocker, not the dashboard UI itself.
+**Status: live at `/dashboard`.** Auth (PBKDF2 password hashing, JWT
+sessions, roles: radiologist/admin), org-scoped patient lists, a
+case-review queue, and an audit trail all shipped as a separate surface —
+the single-user Records/Patients pages kept working unmodified throughout.
 
-- Auth (roles: radiologist / admin), org-scoped patient lists, a case-review
-  queue, and an audit trail on who viewed/attached what.
-- Ships as a separate `/dashboard` surface; the existing single-user
-  Records/Patients pages keep working for the non-org use case.
+Two production gaps found and fixed after initial ship: `JWT_SECRET` was
+falling back to a hardcoded dev default readable in this public repo
+(anyone could forge an admin token), and `DATABASE_URL` was unset so the
+backend silently ran on SQLite on the container's ephemeral disk — every
+redeploy wiped all accounts/patients/audit logs. `JWT_SECRET` now uses
+Render's `generateValue` so the real secret never touches the repo;
+`DATABASE_URL` still needs a real Postgres/Supabase connection string set
+manually in Render's dashboard (`sync: false` keeps it out of the repo on
+principle — the backend is already Postgres-ready, `psycopg2-binary` is
+installed and `db.py` normalizes `postgres://` URLs correctly).
 
 ## Version 5 — Mobile Companion
-**Feasibility: High as a PWA, low as native apps without a dedicated mobile
-team.** The pragmatic path: make the existing Next.js frontend installable
-(manifest + service worker + camera-capture upload flow), which reuses 100%
-of the current API with no new backend work. A native iOS/Android app is a
-separate codebase and a materially larger commitment — worth revisiting only
-if the PWA proves the demand.
+**Status: not started.** The pragmatic path: make the existing Next.js
+frontend installable (manifest + service worker + camera-capture upload
+flow), which reuses 100% of the current API with no new backend work. A
+native iOS/Android app is a separate codebase and a materially larger
+commitment — worth revisiting only if the PWA proves the demand.
 
 ---
 
@@ -113,12 +159,15 @@ those prerequisites exist.
 
 ---
 
-## Suggested sequencing
+## What's actually left
 
-1. **v2 (multi-modality)** — highest leverage-to-effort ratio; the codebase
-   is already waiting for it.
-2. **v3 (reporting + ensemble)** — deepens v1 without new infrastructure.
-3. **v5 (PWA)** — small, high-visibility, no backend changes.
-4. **v4 (clinical dashboard)** — once auth exists, everything else in v4
-   builds on it.
+1. **v5 (PWA)** — the only untouched version. Small, high-visibility, no
+   backend changes.
+2. **Mammography** — open, not blocking anything else. Next real step
+   (if pursued) is retraining the classifier on auto-derived crops, not
+   another localizer architecture (see Version 2 above).
+3. **Ensemble deployability** — needs a paid Render tier or a
+   smaller/quantized backbone; the code is done and waiting either way.
+4. **`DATABASE_URL`** — a five-minute task that only the project owner can
+   do (Render dashboard access), not an engineering gap.
 5. **Institutional phase** — opportunistic, contingent on a real partner.
