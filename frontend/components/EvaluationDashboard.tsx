@@ -33,7 +33,7 @@ export function EvaluationDashboard() {
         <div className="mt-4 flex flex-wrap gap-2">
           <Badge icon={ShieldCheck}>Leak-safe splits</Badge>
           <Badge icon={FlaskConical}>Held-out test sets</Badge>
-          <Badge icon={CheckCircle2}>22+ automated tests passing</Badge>
+          <Badge icon={CheckCircle2}>63 automated tests passing</Badge>
         </div>
       </header>
 
@@ -67,6 +67,18 @@ export function EvaluationDashboard() {
             <div>
               <strong>Not deployed — shown for transparency.</strong>
               <p className="mt-1">{evalData.notDeployedReason}</p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {evalData.supplementaryNote && (
+        <section className="rounded-xl border note-warn p-4 text-sm">
+          <div className="flex items-start gap-3">
+            <FlaskConical className="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+              <strong>Follow-up experiments.</strong>
+              <p className="mt-1">{evalData.supplementaryNote}</p>
             </div>
           </div>
         </section>
