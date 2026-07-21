@@ -78,6 +78,29 @@ def box_to_xyxy(box: torch.Tensor) -> torch.Tensor:
     return torch.stack([cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2], dim=-1)
 
 
+def crop_to_bbox(
+    image_bgr: np.ndarray, cx: float, cy: float, w: float, h: float, pad_frac: float = 0.15
+) -> tuple:
+    """Crops a normalized (cx, cy, w, h) region out of a full-resolution
+    image, padded by pad_frac. Shared by LocalizedPredictor (inference-time,
+    a predicted box) and any training-time crop-materialization script that
+    wants training crops framed exactly the way inference will frame them --
+    the same function, not just similar-looking math, closes the classifier/
+    crop-framing distribution mismatch documented in the mammography
+    write-up (see inference.py's LocalizedPredictor docstring)."""
+    h_img, w_img = image_bgr.shape[:2]
+    w = w * (1 + pad_frac)
+    h = h * (1 + pad_frac)
+    x0 = max(0, int((cx - w / 2) * w_img))
+    x1 = min(w_img, int((cx + w / 2) * w_img))
+    y0 = max(0, int((cy - h / 2) * h_img))
+    y1 = min(h_img, int((cy + h / 2) * h_img))
+    if x1 <= x0 or y1 <= y0:
+        x0, y0, x1, y1 = 0, 0, w_img, h_img
+    box = {"cx": cx, "cy": cy, "w": w, "h": h}
+    return image_bgr[y0:y1, x0:x1], box
+
+
 def box_iou(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     """Elementwise IoU between two (N, 4) batches of (cx, cy, w, h) boxes."""
     p = box_to_xyxy(pred)

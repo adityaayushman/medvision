@@ -16,7 +16,7 @@ from ..explain.gradcam import GradCAM, overlay_heatmap
 from ..imaging import model_image
 from .backbone import ModelConfig, create_model, default_gradcam_layer
 from .dataset import build_transforms
-from .detect import SpatialBBoxNet
+from .detect import SpatialBBoxNet, crop_to_bbox
 
 
 class Predictor:
@@ -255,18 +255,8 @@ class LocalizedPredictor:
         self.model_version = f"localized({localizer_kind}+{self.classifier.backbone})"
 
     def _crop(self, image_bgr: np.ndarray) -> Tuple[np.ndarray, Dict]:
-        h_img, w_img = image_bgr.shape[:2]
         cx, cy, w, h = self._detector.predict_box(image_bgr)
-        w = w * (1 + self.pad_frac)
-        h = h * (1 + self.pad_frac)
-        x0 = max(0, int((cx - w / 2) * w_img))
-        x1 = min(w_img, int((cx + w / 2) * w_img))
-        y0 = max(0, int((cy - h / 2) * h_img))
-        y1 = min(h_img, int((cy + h / 2) * h_img))
-        if x1 <= x0 or y1 <= y0:
-            x0, y0, x1, y1 = 0, 0, w_img, h_img
-        box = {"cx": cx, "cy": cy, "w": w, "h": h}
-        return image_bgr[y0:y1, x0:x1], box
+        return crop_to_bbox(image_bgr, cx, cy, w, h, self.pad_frac)
 
     def predict(self, image_bgr: np.ndarray) -> Dict:
         t0 = time.perf_counter()
