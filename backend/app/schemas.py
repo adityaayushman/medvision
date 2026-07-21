@@ -172,3 +172,28 @@ class DatasetSpecRead(BaseModel):
     url: str
     notes: str = ""
     recommended_for: List[str] = []
+
+
+ExperimentKind = Literal["classification", "bbox_regression", "segmentation", "ensemble"]
+
+
+class ExperimentRunCreate(BaseModel):
+    kind: ExperimentKind
+    modality: str
+    backbone: str
+    label: str
+    metrics: Dict
+    notes: Optional[str] = None
+
+
+class ExperimentRunRead(BaseModel):
+    id: int
+    kind: str
+    modality: str
+    backbone: str
+    label: str
+    metrics: Dict
+    notes: Optional[str] = None
+    created_by_user_id: int
+    created_by_email: Optional[str] = None
+    created_at: datetime

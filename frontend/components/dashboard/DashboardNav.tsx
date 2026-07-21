@@ -2,16 +2,18 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ClipboardList, LogOut, ScrollText, Users, UserCog } from "lucide-react";
+import { ClipboardList, FlaskConical, LogOut, ScrollText, Users, UserCog } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme";
+import type { DashboardRole } from "@/lib/dashboard-types";
 import { useAuth } from "./AuthContext";
 
-const LINKS = [
-  { href: "/dashboard/queue", label: "Queue", icon: ClipboardList, adminOnly: false },
-  { href: "/dashboard/patients", label: "Patients", icon: Users, adminOnly: false },
-  { href: "/dashboard/team", label: "Team", icon: UserCog, adminOnly: true },
-  { href: "/dashboard/audit", label: "Audit", icon: ScrollText, adminOnly: true },
+const LINKS: { href: string; label: string; icon: typeof ClipboardList; allowedRoles?: DashboardRole[] }[] = [
+  { href: "/dashboard/queue", label: "Queue", icon: ClipboardList },
+  { href: "/dashboard/patients", label: "Patients", icon: Users },
+  { href: "/dashboard/research", label: "Research", icon: FlaskConical, allowedRoles: ["admin", "researcher"] },
+  { href: "/dashboard/team", label: "Team", icon: UserCog, allowedRoles: ["admin"] },
+  { href: "/dashboard/audit", label: "Audit", icon: ScrollText, allowedRoles: ["admin"] },
 ];
 
 export function DashboardNav() {
@@ -34,7 +36,7 @@ export function DashboardNav() {
 
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 rounded-full border border-line bg-surface p-1 backdrop-blur">
-            {LINKS.filter((l) => !l.adminOnly || user?.role === "admin").map(({ href, label, icon: Icon }) => {
+            {LINKS.filter((l) => !l.allowedRoles || (user && l.allowedRoles.includes(user.role))).map(({ href, label, icon: Icon }) => {
               const active = pathname.startsWith(href);
               return (
                 <Link

@@ -99,3 +99,20 @@ class Prediction(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_utcnow)
 
     study: Optional[Study] = Relationship(back_populates="prediction")
+
+
+class ExperimentRun(SQLModel, table=True):
+    """A published ML evaluation result (see ml/scripts/log_experiment.py).
+    Not org-scoped like Patient/Study -- experiments are about the
+    platform's own models, not a specific hospital's patient data, so
+    they're visible platform-wide to admin/researcher roles."""
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    kind: str = Field(index=True)          # "classification" | "bbox_regression" | "segmentation" | "ensemble"
+    modality: str = Field(index=True)      # "chest_xray" | "brain_mri" | "mammography"
+    backbone: str
+    label: str
+    metrics: str = "{}"                    # JSON blob -- shape varies by kind
+    notes: Optional[str] = None
+    created_by_user_id: int = Field(foreign_key="user.id")
+    created_at: datetime = Field(default_factory=_utcnow, index=True)

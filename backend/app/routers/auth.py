@@ -71,8 +71,8 @@ def create_teammate(
     admin: User = Depends(require_role("admin")),
     session: Session = Depends(get_session),
 ):
-    if body.role not in ("admin", "radiologist"):
-        raise HTTPException(status_code=422, detail="role must be 'admin' or 'radiologist'")
+    if body.role not in ("admin", "radiologist", "researcher"):
+        raise HTTPException(status_code=422, detail="role must be 'admin', 'radiologist', or 'researcher'")
     existing = session.exec(select(User).where(User.email == body.email)).first()
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")

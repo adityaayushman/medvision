@@ -1,5 +1,12 @@
 import type { Patient, ReviewStatus, StudyRead } from "./types";
-import type { AuditLogRead, DashboardUser, TokenResponse } from "./dashboard-types";
+import type {
+  AuditLogRead,
+  DashboardRole,
+  DashboardUser,
+  ExperimentKind,
+  ExperimentRunRead,
+  TokenResponse,
+} from "./dashboard-types";
 
 async function jsonOrThrow<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -45,7 +52,7 @@ export async function listTeammates(token: string): Promise<DashboardUser[]> {
 
 export async function createTeammate(
   token: string,
-  data: { email: string; password: string; role: "admin" | "radiologist"; name?: string },
+  data: { email: string; password: string; role: DashboardRole; name?: string },
 ): Promise<DashboardUser> {
   const res = await fetch("/api/auth/users", {
     method: "POST",
@@ -145,5 +152,18 @@ export async function assignDashboardPatient(token: string, studyId: number, pat
 export async function listAuditLog(token: string): Promise<AuditLogRead[]> {
   return jsonOrThrow<AuditLogRead[]>(
     await fetch("/api/dashboard/audit", { headers: authHeaders(token), cache: "no-store" }),
+  );
+}
+
+export async function listExperimentRuns(
+  token: string,
+  filters?: { kind?: ExperimentKind; modality?: string },
+): Promise<ExperimentRunRead[]> {
+  const params = new URLSearchParams();
+  if (filters?.kind) params.set("kind", filters.kind);
+  if (filters?.modality) params.set("modality", filters.modality);
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  return jsonOrThrow<ExperimentRunRead[]>(
+    await fetch(`/api/research/runs${qs}`, { headers: authHeaders(token), cache: "no-store" }),
   );
 }
