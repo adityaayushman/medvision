@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Loader2, ShieldAlert, UserCog, UserPlus } from "lucide-react";
 import { useAuth } from "@/components/dashboard/AuthContext";
 import { createTeammate, listTeammates } from "@/lib/dashboard-api";
-import type { DashboardUser } from "@/lib/dashboard-types";
+import type { DashboardRole, DashboardUser } from "@/lib/dashboard-types";
 
 export default function TeamPage() {
   const { token, user } = useAuth();
@@ -12,7 +12,7 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"admin" | "radiologist">("radiologist");
+  const [role, setRole] = useState<DashboardRole>("radiologist");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,8 +76,9 @@ export default function TeamPage() {
         </label>
         <label className="flex flex-col gap-1 text-xs font-medium text-ink-4">
           Role
-          <select value={role} onChange={(e) => setRole(e.target.value as "admin" | "radiologist")} className="input">
+          <select value={role} onChange={(e) => setRole(e.target.value as DashboardRole)} className="input">
             <option value="radiologist">Radiologist</option>
+            <option value="researcher">Researcher</option>
             <option value="admin">Admin</option>
           </select>
         </label>

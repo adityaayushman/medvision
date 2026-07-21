@@ -1,8 +1,10 @@
+export type DashboardRole = "admin" | "radiologist" | "researcher";
+
 export interface DashboardUser {
   id: number;
   org_id: number;
   email: string;
-  role: "admin" | "radiologist";
+  role: DashboardRole;
   name?: string | null;
   created_at: string;
 }
@@ -21,5 +23,20 @@ export interface AuditLogRead {
   target_type: string;
   target_id: number;
   meta?: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export type ExperimentKind = "classification" | "bbox_regression" | "segmentation" | "ensemble";
+
+export interface ExperimentRunRead {
+  id: number;
+  kind: ExperimentKind;
+  modality: string;
+  backbone: string;
+  label: string;
+  metrics: Record<string, unknown>;
+  notes?: string | null;
+  created_by_user_id: number;
+  created_by_email?: string | null;
   created_at: string;
 }
