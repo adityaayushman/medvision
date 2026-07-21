@@ -21,6 +21,7 @@ export interface ModalityEvaluation {
   label: string;
   deployed: boolean;
   notDeployedReason?: string;
+  supplementaryNote?: string;
   modelInfo: {
     name: string;
     task: string;
@@ -95,6 +96,17 @@ export const EVALUATIONS: Record<string, ModalityEvaluation> = {
     key: "brain_mri",
     label: "Brain MRI",
     deployed: true,
+    supplementaryNote:
+      "Two follow-up experiments since this model shipped, both real and reproducible, " +
+      "neither live: a 3-way ensemble (EfficientNet-B0 + ResNet50 + DenseNet121, soft-voted) " +
+      "reaches 87.1% accuracy / 0.973 ROC-AUC, clearly ahead of the single model below -- but " +
+      "its own memory footprint (measured with the exact CPU-only torch build the production " +
+      "server runs) is ~490-580MB, at or over the entire 512MB hosting ceiling by itself, before " +
+      "anything else in the process. Separately, a same-recipe backbone comparison found ResNet50 " +
+      "(85.5% acc, 0.970 AUC) and VGG16 (85.3% acc, 0.968 AUC -- its first-ever result in this " +
+      "project) both beat EfficientNet-B0 on accuracy, at 1.6-2.2x slower CPU inference. Full " +
+      "numbers, confusion matrices, and per-class breakdowns for all of this are in the Research " +
+      "Workspace (admin/researcher dashboard access).",
     modelInfo: {
       name: "EfficientNet-B0",
       task: "4-class brain tumor classification",
@@ -146,39 +158,53 @@ export const EVALUATIONS: Record<string, ModalityEvaluation> = {
     label: "Mammography",
     deployed: false,
     notDeployedReason:
-      "This model is NOT live — its test accuracy (59.2%) is below the majority-class " +
-      "baseline (63.3%, always predicting Normal), with 0% recall on the Benign class. " +
-      "The MIAS dataset has only 322 images total (35-44 per minority class), too few to " +
-      "train a reliable classifier. The DIP pipeline and quality gate work on mammograms " +
-      "today; classification needs a larger dataset (CBIS-DDSM, ~10k+ images) before it " +
-      "can ship. Shown here for transparency, not as a working feature.",
+      "The best real result found (below) scores 71.1% accuracy / 0.785 ROC-AUC on " +
+      "CBIS-DDSM lesion-cropped patches -- a genuine, reproducible win, well above both the " +
+      "55% majority-class baseline and an earlier full-mammogram attempt (59.1% acc, 0.642 " +
+      "AUC, using the exact same recipe). It is still not live: this classifier needs an " +
+      "already-cropped lesion image, but the upload flow -- like every other modality -- " +
+      "provides a full mammogram. Two separate attempts at automatic cropping (bounding-box " +
+      "regression, then U-Net pixel segmentation) each improved at their own localization task " +
+      "but the full detect-crop-classify pipeline still scored below the plain full-image " +
+      "baseline both times: the classifier was trained only on official hand-verified crops and " +
+      "doesn't generalize to an automatically-derived one, however accurately it's centered. " +
+      "A third attempt -- retraining the classifier on ground-truth-derived crops matching the " +
+      "pipeline's own framing -- recovered some of that gap (53.0% acc, up from 48.9%) but still " +
+      "fell short. Full experiment history (9 mammography runs) is in the Research Workspace.",
     modelInfo: {
       name: "EfficientNet-B0",
-      task: "3-class mammography classification",
-      dataset: "MIAS Mammography Database",
-      trainedOn: "322 images (Normal / Benign / Malignant, derived from official Info.txt annotations)",
-      split: { train: 224, val: 49, test: 49 },
-      schedule: "3 head + 5 fine-tune epochs (two-phase transfer learning), CPU",
+      task: "2-class mammography classification (Benign / Malignant)",
+      dataset: "CBIS-DDSM (Kaggle mirror) — lesion-cropped patches",
+      trainedOn: "3,567 lesion-cropped patches from 2,857 unique mammograms (some abnormalities yield multiple crops), patient-safe split",
+      split: { train: 2473, val: 488, test: 606 },
+      schedule: "3 head + 5 fine-tune epochs (two-phase transfer learning), GPU",
     },
     headline: {
-      roc_auc: 0.6175547665319499,
-      accuracy: 0.5918367346938775,
-      macro_f1: 0.37121212121212127,
-      test_images: 49,
+      roc_auc: 0.7849055720123173,
+      accuracy: 0.7112211221122112,
+      macro_f1: 0.6961413823633066,
+      test_images: 606,
     },
     perClass: [
-      { label: "Benign", precision: 0.0, recall: 0.0, f1: 0.0, support: 10 },
-      { label: "Malignant", precision: 0.6666666666666666, recall: 0.25, f1: 0.36363636363636365, support: 8 },
-      { label: "Normal", precision: 0.6585365853658537, recall: 0.8709677419354839, f1: 0.75, support: 31 },
+      { label: "Benign", precision: 0.7905027932960894, recall: 0.7389033942558747, f1: 0.7638326585695007, support: 383 },
+      { label: "Malignant", precision: 0.5967741935483871, recall: 0.6636771300448431, f1: 0.6284501061571125, support: 223 },
     ],
-    cmLabels: ["Benign", "Malignant", "Normal"],
+    cmLabels: ["Benign", "Malignant"],
     confusionMatrix: [
-      [0, 1, 9],
-      [1, 2, 5],
-      [4, 0, 27],
+      [283, 100],
+      [75, 148],
     ],
-    history: [],
-    randomBaseline: 1 / 3,
+    history: [
+      { step: 1, phase: "head", train_loss: 0.6716, val_loss: 0.6718, train_acc: 0.590, val_acc: 0.629 },
+      { step: 2, phase: "head", train_loss: 0.6411, val_loss: 0.6565, train_acc: 0.633, val_acc: 0.621 },
+      { step: 3, phase: "head", train_loss: 0.6476, val_loss: 0.6752, train_acc: 0.632, val_acc: 0.607 },
+      { step: 4, phase: "finetune", train_loss: 0.6297, val_loss: 0.6580, train_acc: 0.626, val_acc: 0.615 },
+      { step: 5, phase: "finetune", train_loss: 0.6111, val_loss: 0.6611, train_acc: 0.659, val_acc: 0.611 },
+      { step: 6, phase: "finetune", train_loss: 0.6116, val_loss: 0.6610, train_acc: 0.657, val_acc: 0.621 },
+      { step: 7, phase: "finetune", train_loss: 0.6022, val_loss: 0.6581, train_acc: 0.668, val_acc: 0.627 },
+      { step: 8, phase: "finetune", train_loss: 0.6137, val_loss: 0.6574, train_acc: 0.670, val_acc: 0.637 },
+    ],
+    randomBaseline: 0.5,
   },
 };
 
