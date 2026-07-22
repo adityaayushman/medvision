@@ -37,6 +37,7 @@ export interface ModalityEvaluation {
   label: string;
   deployed: boolean;
   notDeployedReason?: string;
+  caseStudyHref?: string;
   supplementaryNote?: string;
   modelInfo: {
     name: string;
@@ -259,6 +260,7 @@ export const EVALUATIONS: Record<string, ModalityEvaluation> = {
     key: "mammography",
     label: "Mammography",
     deployed: false,
+    caseStudyHref: "/case-study",
     notDeployedReason:
       "The best real result found (below) scores 71.1% accuracy / 0.785 ROC-AUC on " +
       "CBIS-DDSM lesion-cropped patches -- a genuine, reproducible win, well above both the " +
