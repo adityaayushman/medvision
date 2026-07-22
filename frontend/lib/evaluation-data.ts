@@ -226,15 +226,20 @@ export const EVALUATIONS: Record<string, ModalityEvaluation> = {
           citation: "This project — currently deployed",
           url: "",
           ours: true,
+          caveat: "Single run — not yet re-tested across seeds.",
         },
         {
-          system: "MedChron ResNet50",
-          accuracy: 0.855,
-          roc_auc: 0.9701,
-          citation: "This project — 25M params",
+          system: "MedChron ResNet50 (mean of 5 seeds)",
+          accuracy: 0.8469,
+          roc_auc: 0.9673,
+          citation: "This project — 25M params, seeds {42,0,1,2,3}",
           url: "",
           ours: true,
-          caveat: "Beats the ResNet101 baseline on both metrics with a smaller model.",
+          caveat:
+            "95% CI: 82.9–86.5% acc, 96.4–97.1% AUC. The baseline's 84.5% acc falls inside our CI " +
+            "(one-sample t-test p=0.80) — NOT a statistically significant accuracy win; a single earlier " +
+            "run (seed 42, 85.5%) overstated this. The AUC win is real (baseline's 90.1% is far outside " +
+            "our CI, p<0.000001).",
         },
         {
           system: "MedChron 3-way ensemble",
@@ -243,16 +248,17 @@ export const EVALUATIONS: Record<string, ModalityEvaluation> = {
           citation: "This project — not deployed (memory ceiling)",
           url: "",
           ours: true,
-          caveat: "Its ROC-AUC exceeds even the published NAS SOTA's 0.956.",
+          caveat: "Single run — not yet re-tested across seeds, unlike the ResNet50 result above.",
         },
       ],
       takeaway:
-        "Competitive-to-favorable. Even the live single model matches the published SOTA on ROC-AUC " +
-        "(0.956), and our ResNet50 and ensemble beat the ResNet101 baseline on accuracy AND AUC with " +
-        "fewer or comparable parameters. On the metric that matters most for a screening tool " +
-        "(ROC-AUC), this project is at or above the published state of the art on this dataset — a " +
-        "real, verifiable result, trained with an 8-epoch transfer-learning recipe, not a bespoke " +
-        "architecture search.",
+        "Corrected after multi-seed testing: the ROC-AUC win is real and robust (our 95% CI sits " +
+        "entirely above the published baseline's 90.1%, p<0.000001) — on the metric that matters most " +
+        "for a screening tool, this project is genuinely at or above the published result on this " +
+        "dataset. The accuracy win is not — averaged over 5 seeds, our ResNet50's accuracy is " +
+        "statistically indistinguishable from the ResNet101 baseline (p=0.80); an earlier version of " +
+        "this page claimed an accuracy win based on a single lucky-ish run, which was a real overclaim " +
+        "and has been corrected here rather than left standing.",
     },
   },
 
