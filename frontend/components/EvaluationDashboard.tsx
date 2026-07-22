@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { BarChart3, CheckCircle2, ShieldCheck, FlaskConical, Cpu, ShieldOff, BookOpen } from "lucide-react";
+import Link from "next/link";
+import { BarChart3, CheckCircle2, ShieldCheck, FlaskConical, Cpu, ShieldOff, BookOpen, ArrowRight } from "lucide-react";
 import { EVALUATIONS, PROCEDURES, SERIES } from "@/lib/evaluation-data";
 import type { LiteratureBenchmark } from "@/lib/evaluation-data";
 import { ConfusionMatrix, LineChart, MetricBar, StatTile } from "@/components/eval-charts";
@@ -68,6 +69,14 @@ export function EvaluationDashboard() {
             <div>
               <strong>Not deployed — shown for transparency.</strong>
               <p className="mt-1">{evalData.notDeployedReason}</p>
+              {evalData.caseStudyHref && (
+                <Link
+                  href={evalData.caseStudyHref}
+                  className="mt-2 inline-flex items-center gap-1 text-sm font-medium underline decoration-dotted hover:no-underline"
+                >
+                  Read the full case study <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              )}
             </div>
           </div>
         </section>
