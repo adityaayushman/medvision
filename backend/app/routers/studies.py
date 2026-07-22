@@ -5,13 +5,13 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
-from sqlmodel import Session, select
+from sqlmodel import Session, func, select
 
 from ..db import get_session
 from ..models_db import Patient, Study
 from ..reports import build_report_data, render_report_pdf
 from ..schemas import ReportRead, StudyRead
-from .patients import _study_to_read
+from .patients import _studies_to_read_batch, _study_to_read
 
 router = APIRouter(prefix="/api/studies", tags=["studies"])
 
@@ -25,12 +25,13 @@ def list_studies(limit: int = 200, session: Session = Depends(get_session)):
     studies = session.exec(
         select(Study).where(Study.org_id.is_(None)).order_by(Study.uploaded_at.desc()).limit(limit)
     ).all()
-    return [_study_to_read(s, session) for s in studies]
+    return _studies_to_read_batch(studies, session)
 
 
 @router.get("/count")
 def study_count(session: Session = Depends(get_session)) -> dict:
-    return {"count": len(session.exec(select(Study).where(Study.org_id.is_(None))).all())}
+    count = session.exec(select(func.count()).select_from(Study).where(Study.org_id.is_(None))).one()
+    return {"count": count}
 
 
 def _get_public_study(study_id: int, session: Session) -> Study:
