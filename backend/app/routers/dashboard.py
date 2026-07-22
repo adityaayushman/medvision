@@ -15,7 +15,7 @@ from ..db import get_session
 from ..ml import AnalyzerService, get_analyzer
 from ..models_db import AuditLog, Patient, Study, User
 from ..routers.inference import _analyze_and_persist
-from ..routers.patients import _patient_to_read, _study_to_read
+from ..routers.patients import _patient_to_read, _patients_to_read_batch, _studies_to_read_batch, _study_to_read
 from ..schemas import (
     AnalyzeResponse,
     AuditLogRead,
@@ -65,7 +65,7 @@ def list_patients(user: User = Depends(get_current_user), session: Session = Dep
     patients = session.exec(
         select(Patient).where(Patient.org_id == user.org_id).order_by(Patient.created_at.desc())
     ).all()
-    return [_patient_to_read(p, session) for p in patients]
+    return _patients_to_read_batch(patients, session)
 
 
 @router.get("/patients/{patient_id}", response_model=PatientRead)
@@ -89,7 +89,7 @@ def patient_timeline(
         select(Study).where(Study.patient_id == patient_id, Study.org_id == user.org_id)
         .order_by(Study.uploaded_at)
     ).all()
-    return [_study_to_read(s, session) for s in studies]
+    return _studies_to_read_batch(studies, session)
 
 
 @router.post("/studies/analyze", response_model=AnalyzeResponse)
@@ -118,7 +118,7 @@ def list_studies(
     if review_status:
         stmt = stmt.where(Study.review_status == review_status)
     studies = session.exec(stmt.order_by(Study.uploaded_at.desc())).all()
-    return [_study_to_read(s, session) for s in studies]
+    return _studies_to_read_batch(studies, session)
 
 
 @router.get("/studies/{study_id}", response_model=StudyRead)
