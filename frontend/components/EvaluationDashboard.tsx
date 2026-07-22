@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { BarChart3, CheckCircle2, ShieldCheck, FlaskConical, Cpu, ShieldOff } from "lucide-react";
+import { BarChart3, CheckCircle2, ShieldCheck, FlaskConical, Cpu, ShieldOff, BookOpen } from "lucide-react";
 import { EVALUATIONS, PROCEDURES, SERIES } from "@/lib/evaluation-data";
+import type { LiteratureBenchmark } from "@/lib/evaluation-data";
 import { ConfusionMatrix, LineChart, MetricBar, StatTile } from "@/components/eval-charts";
 import { cn } from "@/lib/utils";
 
@@ -192,6 +193,9 @@ export function EvaluationDashboard() {
         </section>
       )}
 
+      {/* literature comparison */}
+      {evalData.literature && <LiteratureSection lit={evalData.literature} />}
+
       {/* procedures */}
       <section>
         <div className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-ink-4">
@@ -220,6 +224,64 @@ export function EvaluationDashboard() {
         software, <strong>not a medical device and not for clinical use.</strong>
       </section>
     </div>
+  );
+}
+
+function LiteratureSection({ lit }: { lit: LiteratureBenchmark }) {
+  // Scale bars against the largest AUC (preferred) or accuracy present, so
+  // "ours" vs "published" is visually comparable within the panel.
+  const vals = lit.refs.flatMap((r) => [r.roc_auc, r.accuracy].filter((v): v is number => v != null));
+  const max = Math.max(...vals, 1);
+
+  return (
+    <section>
+      <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-ink-4">
+        <BookOpen className="h-3.5 w-3.5" /> Versus published results
+      </div>
+      <div className="card p-6">
+        <p className="mb-5 max-w-2xl text-sm text-ink-3">{lit.intro}</p>
+        <div className="space-y-4">
+          {lit.refs.map((r) => (
+            <div key={r.system} className={cn("rounded-lg border p-3", r.ours ? "border-brand-400/40 bg-brand-500/5" : "border-line")}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className={cn("text-sm font-semibold", r.ours ? "text-brand-700 dark:text-brand-300" : "text-ink")}>
+                  {r.system}
+                  {r.ours && <span className="ml-2 rounded-full bg-brand-500/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-brand-700 dark:text-brand-200">ours</span>}
+                </span>
+                <span className="font-mono text-xs tabular-nums text-ink-3">
+                  {r.roc_auc != null && <>AUC {r.roc_auc.toFixed(3)}</>}
+                  {r.roc_auc != null && r.accuracy != null && <span className="text-ink-4"> · </span>}
+                  {r.accuracy != null && <>{(r.accuracy * 100).toFixed(1)}% acc</>}
+                </span>
+              </div>
+              {/* bar: prefer AUC, else accuracy */}
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${((r.roc_auc ?? r.accuracy ?? 0) / max) * 100}%`,
+                    background: r.ours ? "var(--series-train)" : "var(--chart-grid-strong)",
+                  }}
+                />
+              </div>
+              <div className="mt-2 flex flex-wrap items-baseline gap-x-2 text-[11px] text-ink-4">
+                {r.url ? (
+                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="underline decoration-dotted hover:text-ink-2">
+                    {r.citation}
+                  </a>
+                ) : (
+                  <span>{r.citation}</span>
+                )}
+                {r.caveat && <span className="italic">— {r.caveat}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-5 rounded-lg border-l-2 border-brand-400 bg-surface-2/50 py-2 pl-3 pr-2">
+          <p className="text-sm text-ink-2"><strong className="text-ink">Takeaway.</strong> {lit.takeaway}</p>
+        </div>
+      </div>
+    </section>
   );
 }
 
