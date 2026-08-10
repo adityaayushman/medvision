@@ -144,34 +144,38 @@ export const EVALUATIONS: Record<string, ModalityEvaluation> = {
     supplementaryNote:
       "Two follow-up experiments since this model shipped, both real and reproducible, " +
       "neither live: a 3-way ensemble (EfficientNet-B0 + ResNet50 + DenseNet121, soft-voted) " +
-      "averages 88.1% accuracy / 0.977 ROC-AUC over 5 seeds (95% CI 87.4-88.9% acc), clearly " +
-      "ahead of the single model below -- but " +
+      "averages 88.1% accuracy / 0.977 ROC-AUC over 5 seeds (95% CI 87.4-88.9% acc), ahead of " +
+      "the single model below -- but " +
       "its own memory footprint (measured with the exact CPU-only torch build the production " +
       "server runs) is ~490-580MB, at or over the entire 512MB hosting ceiling by itself, before " +
-      "anything else in the process. Separately, a same-recipe backbone comparison found ResNet50 " +
-      "(85.5% acc, 0.970 AUC) and VGG16 (85.3% acc, 0.968 AUC -- its first-ever result in this " +
-      "project) both beat EfficientNet-B0 on accuracy, at 1.6-2.2x slower CPU inference. Full " +
-      "numbers, confusion matrices, and per-class breakdowns for all of this are in the Research " +
-      "Workspace (admin/researcher dashboard access).",
+      "anything else in the process. A same-recipe backbone comparison previously reported that " +
+      "ResNet50 (85.5% acc) and VGG16 (85.3% acc) 'both beat EfficientNet-B0' -- that has since " +
+      "been corrected: it compared single seed-42 runs, and seed 42 turned out to be an unusually " +
+      "bad draw for EfficientNet-B0 specifically. Over 5 seeds the two are statistically " +
+      "indistinguishable (ResNet50 84.69% vs EfficientNet-B0 84.41%), and EfficientNet-B0 stays " +
+      "deployed on its 1.6-2.2x faster CPU inference. Knowledge distillation from the ensemble was " +
+      "also built and tested, and made accuracy significantly worse (81.88% vs 84.41%, p=0.027) -- " +
+      "kept in the repo as a documented negative result. Full numbers, confusion matrices, and " +
+      "per-class breakdowns are in the Research Workspace (admin/researcher dashboard access).",
     modelInfo: {
       name: "EfficientNet-B0",
       task: "4-class brain tumor classification",
       dataset: "Brain Tumor Classification (MRI) — sartajbhuvaji/Kaggle",
       trainedOn: "3,264 images (glioma / meningioma / pituitary / no tumor), image-level split (no native patient IDs)",
       split: { train: 2284, val: 490, test: 490 },
-      schedule: "3 head + 5 fine-tune epochs (two-phase transfer learning), CPU",
+      schedule: "5 head + 10 fine-tune epochs (two-phase transfer learning), seed 3, GPU",
     },
     headline: {
-      roc_auc: 0.9564474963280549,
-      accuracy: 0.8204081632653061,
-      macro_f1: 0.8187924683185762,
+      roc_auc: 0.968978822075071,
+      accuracy: 0.8571428571428571,
+      macro_f1: 0.8604804495868813,
       test_images: 490,
     },
     perClass: [
-      { label: "glioma_tumor", precision: 0.865546218487395, recall: 0.7410071942446043, f1: 0.7984496124031008, support: 139 },
-      { label: "meningioma_tumor", precision: 0.7983870967741935, recall: 0.7021276595744681, f1: 0.7471698113207547, support: 141 },
-      { label: "no_tumor", precision: 0.6915887850467289, recall: 0.9866666666666667, f1: 0.8131868131868132, support: 75 },
-      { label: "pituitary_tumor", precision: 0.9, recall: 0.9333333333333333, f1: 0.9163636363636364, support: 135 },
+      { label: "glioma_tumor", precision: 0.8560606060606061, recall: 0.8129496402877698, f1: 0.8339483394833949, support: 139 },
+      { label: "meningioma_tumor", precision: 0.8043478260869565, recall: 0.7872340425531915, f1: 0.7956989247311828, support: 141 },
+      { label: "no_tumor", precision: 0.8181818181818182, recall: 0.96, f1: 0.8834355828220859, support: 75 },
+      { label: "pituitary_tumor", precision: 0.9393939393939394, recall: 0.9185185185185185, f1: 0.9288389513108615, support: 135 },
     ],
     cmLabels: ["glioma_tumor", "meningioma_tumor", "no_tumor", "pituitary_tumor"],
     shortLabels: {
@@ -181,20 +185,27 @@ export const EVALUATIONS: Record<string, ModalityEvaluation> = {
       pituitary_tumor: "Pituitary",
     },
     confusionMatrix: [
-      [103, 20, 11, 5],
-      [14, 99, 19, 9],
-      [1, 0, 74, 0],
-      [1, 5, 3, 126],
+      [113, 18, 7, 1],
+      [15, 111, 8, 7],
+      [1, 2, 72, 0],
+      [3, 7, 1, 124],
     ],
     history: [
-      { step: 1, phase: "head", train_loss: 1.0168, val_loss: 0.8113, train_acc: 0.5898, val_acc: 0.7122 },
-      { step: 2, phase: "head", train_loss: 0.7818, val_loss: 0.6845, train_acc: 0.704, val_acc: 0.7531 },
-      { step: 3, phase: "head", train_loss: 0.6995, val_loss: 0.6383, train_acc: 0.7268, val_acc: 0.7673 },
-      { step: 4, phase: "finetune", train_loss: 0.6721, val_loss: 0.6084, train_acc: 0.7364, val_acc: 0.7837 },
-      { step: 5, phase: "finetune", train_loss: 0.612, val_loss: 0.5687, train_acc: 0.7706, val_acc: 0.802 },
-      { step: 6, phase: "finetune", train_loss: 0.6062, val_loss: 0.5381, train_acc: 0.7649, val_acc: 0.802 },
-      { step: 7, phase: "finetune", train_loss: 0.5752, val_loss: 0.5314, train_acc: 0.7758, val_acc: 0.8041 },
-      { step: 8, phase: "finetune", train_loss: 0.5518, val_loss: 0.5028, train_acc: 0.7863, val_acc: 0.8082 },
+      { step: 1, phase: "head", train_loss: 1.0067, val_loss: 0.8198, train_acc: 0.5919, val_acc: 0.6918 },
+      { step: 2, phase: "head", train_loss: 0.7882, val_loss: 0.7407, train_acc: 0.69, val_acc: 0.7367 },
+      { step: 3, phase: "head", train_loss: 0.7097, val_loss: 0.6616, train_acc: 0.7294, val_acc: 0.7571 },
+      { step: 4, phase: "head", train_loss: 0.6797, val_loss: 0.6698, train_acc: 0.7303, val_acc: 0.7714 },
+      { step: 5, phase: "head", train_loss: 0.6553, val_loss: 0.6028, train_acc: 0.736, val_acc: 0.7816 },
+      { step: 6, phase: "finetune", train_loss: 0.6266, val_loss: 0.5675, train_acc: 0.7469, val_acc: 0.798 },
+      { step: 7, phase: "finetune", train_loss: 0.6031, val_loss: 0.5371, train_acc: 0.7566, val_acc: 0.8082 },
+      { step: 8, phase: "finetune", train_loss: 0.5684, val_loss: 0.5231, train_acc: 0.7736, val_acc: 0.8102 },
+      { step: 9, phase: "finetune", train_loss: 0.5464, val_loss: 0.4887, train_acc: 0.7863, val_acc: 0.8204 },
+      { step: 10, phase: "finetune", train_loss: 0.5166, val_loss: 0.4742, train_acc: 0.8039, val_acc: 0.8245 },
+      { step: 11, phase: "finetune", train_loss: 0.493, val_loss: 0.4732, train_acc: 0.8095, val_acc: 0.8265 },
+      { step: 12, phase: "finetune", train_loss: 0.5059, val_loss: 0.4622, train_acc: 0.799, val_acc: 0.8327 },
+      { step: 13, phase: "finetune", train_loss: 0.4733, val_loss: 0.4547, train_acc: 0.817, val_acc: 0.8388 },
+      { step: 14, phase: "finetune", train_loss: 0.4623, val_loss: 0.4251, train_acc: 0.8139, val_acc: 0.8449 },
+      { step: 15, phase: "finetune", train_loss: 0.4479, val_loss: 0.3837, train_acc: 0.813, val_acc: 0.8633 },
     ],
     randomBaseline: 1 / 4,
     literature: {
@@ -222,12 +233,16 @@ export const EVALUATIONS: Record<string, ModalityEvaluation> = {
         },
         {
           system: "MedChron EfficientNet-B0 (live)",
-          accuracy: 0.8204,
-          roc_auc: 0.9564,
+          accuracy: 0.8571,
+          roc_auc: 0.969,
           citation: "This project — currently deployed",
           url: "",
           ours: true,
-          caveat: "Single run — not yet re-tested across seeds.",
+          caveat:
+            "Reseeded. The previously-deployed checkpoint scored 82.04% and turned out to be the " +
+            "worst of 5 seeds; this is seed 3, the best. Same architecture and checkpoint size -- " +
+            "5-seed mean for this configuration is 84.41% (95% CI 82.67-86.14), so treat 85.71% as " +
+            "the top of that range, not a new expected value.",
         },
         {
           system: "MedChron ResNet50 (mean of 5 seeds)",
