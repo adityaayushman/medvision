@@ -79,11 +79,50 @@ than just stated:
    doesn't generalize to *any* automatically-derived crop, regardless of how
    accurately it's centered. Two different localizer architectures hit the
    same wall because neither touched that mismatch.
+6. **Retrain the classifier on auto-derived crops** — the fix (5)'s own
+   diagnosis called for: `ml/scripts/crop_mammography_with_localizer.py`
+   runs the trained segmenter's own `predict_box()` (not ground truth) over
+   all 2,857 images and materializes those crops as a training manifest
+   (`ml/data/mammography/cbis_autocrop_prepared/`), then the classifier is
+   retrained from scratch on them (`ml/artifacts/mammography_autocrop`).
+   Standalone: 56.4% acc / 0.566 AUC on its own (noisier) test crops — below
+   both ground-truth-trained classifiers (steps 3 and the gtcrop variant
+   below), as expected: real localizer noise is a harder training signal
+   than a clean annotation. But the number that matters is the full
+   segmenter→crop→this-classifier pipeline on full mammograms, which on its
+   first (seed 42) run scored 56.6% acc / 0.574 AUC
+   (`ml/artifacts/mammography_localized_autocrop`) — the best
+   full-pipeline result yet (vs. 48.9%/0.541 pairing the same segmenter with
+   the official-crop classifier, and 53.0%/0.534 for the bbox-regressor
+   pipeline), confirming the train/inference crop-mismatch diagnosis was
+   real and partially fixable this way. Re-run **across 5 seeds** it averages
+   **56.58% acc (95% CI 55.17–57.98) / 0.584 AUC (95% CI 0.560–0.607)** —
+   clearing the 55.0% CBIS-DDSM majority baseline (test split 241 Benign /
+   197 Malignant), the first automatic, no-ground-truth full pipeline attempt
+   to beat naive-majority guessing at all. That accuracy win is
+   *statistically* significant (one-sample t-test, p=0.0377) but the CI floor
+   clears baseline by only 0.15 points; the sturdier evidence of real signal
+   is ROC-AUC sitting well above chance (p=0.00055). Per-seed accuracy ranged
+   55.02–58.22%, so any single run here carries ±1.4 points of seed noise.
+   **Still not deployed**: a ~1.5-point margin over majority guessing isn't
+   clinically useful whatever its p-value, and it's still far below attempt
+   3's 71.1% standalone number. The remaining gap
+   is now most plausibly the segmenter's own accuracy (Dice 0.254 is real
+   but not high) rather than the crop-convention
+   mismatch, which this experiment isolated and addressed.
 
-**Next step, if revisited:** retrain the classifier on crops the way the
-pipeline actually produces them (segmenter output + padding), not on
-official ground-truth crops — a different experiment from "improve the
-localizer," which is what both attempts 4 and 5 tried.
+   (A parallel, narrower experiment — `cbis_gtcrop_prepared` — trained a
+   classifier on *ground-truth* boxes framed with `LocalizedPredictor`'s
+   exact padding/convention, isolating "does matching the framing alone
+   help" from "does exposure to real localizer noise help." That scored
+   62.5% acc / 0.660 AUC standalone but only 53.0% acc / 0.534 AUC in the
+   full pipeline — worse than this step's real-noise-trained classifier,
+   suggesting noise exposure mattered more than framing convention alone.)
+
+**Next step, if revisited:** improve the segmenter itself (Dice 0.254 →
+higher), now that crop-convention mismatch is no longer the dominant
+bottleneck — or accept 56.6% as still below a clinically-useful bar and
+leave mammography undeployed.
 
 ## Version 3 — AI-Assisted Reporting & Model Improvements
 **Status: report drafting live. Ensemble built and evaluated, not
@@ -93,8 +132,17 @@ deployable on the current hosting tier.**
   renders as a structured draft report (PDF/text), labeled **"AI Draft —
   Requires Clinician Review"**, no auto-finalization path.
 - **Multi-model ensemble** — ✅ built (`EnsemblePredictor`, soft-voting
-  across 2-3 backbones on the same split) and ✅ evaluated: a 3-way brain
-  MRI ensemble clearly beat the single-model baseline. ⛔ **Not deployed.**
+  across 2-3 backbones on the same split) and ✅ evaluated **across 5 seeds**:
+  the 3-way brain MRI ensemble averages 88.12% acc (95% CI 87.4–88.9) /
+  0.977 AUC (95% CI 0.974–0.980), clearly beating the 82.0% single-model
+  baseline. Against the published NAS paper on this dataset it is
+  significantly *above* the LeaSE+DARTS SOTA on ROC-AUC (p=0.000057) and
+  significantly *below* it on accuracy (p=0.00076) — both real, neither
+  quotable alone. The 2-way variant averages 87.67% / 0.974 but is much less
+  seed-stable (±2.03 vs ±0.75 accuracy points). Note seed 42 — the
+  originally-published single run — was the *worst* of the five for both
+  configurations, so the old 87.14%/84.90% figures understated them.
+  ⛔ **Not deployed.**
   Two live deploy attempts (3-way, then 2-way) OOM'd / crash-looped Render's
   512MB free-tier instance. Root cause isolated with real measurements,
   not guesses: `AnalyzerService` eagerly loads every modality at startup, so
@@ -163,9 +211,13 @@ those prerequisites exist.
 
 1. **v5 (PWA)** — the only untouched version. Small, high-visibility, no
    backend changes.
-2. **Mammography** — open, not blocking anything else. Next real step
-   (if pursued) is retraining the classifier on auto-derived crops, not
-   another localizer architecture (see Version 2 above).
+2. **Mammography** — open, not blocking anything else. Retraining the
+   classifier on auto-derived crops (see Version 2 above) is now done and
+   is the best full-pipeline result yet (5-seed mean 56.58% acc, 95% CI
+   55.17–57.98, vs the 55.0% CBIS-DDSM majority baseline) — still not
+   deployed, since a ~1.5-point margin isn't clinically useful. Next real
+   step (if pursued) is improving the segmenter itself, not another crop-convention
+   experiment.
 3. **Ensemble deployability** — needs a paid Render tier or a
    smaller/quantized backbone; the code is done and waiting either way.
 4. **`DATABASE_URL`** — a five-minute task that only the project owner can
