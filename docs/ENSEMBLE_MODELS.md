@@ -138,6 +138,22 @@ Currently deployed: single EfficientNet-B0 checkpoint per modality
 Unblocking it needs either a paid Render tier with more RAM, or a
 smaller/quantized backbone — not further loading-strategy changes.
 
+### Distillation was tried as a way around this, and failed
+
+The obvious escape is knowledge distillation: train a single
+EfficientNet-B0 student on the ensemble's soft outputs, so the accuracy
+ships at single-model memory cost. It is fully implemented
+(`ml/src/medchron/models/distill.py`, `ml/scripts/distill.py`) and it
+**significantly underperforms plain training** — 81.88% vs 84.41% over the
+same 5 seeds, p=0.027. Cause: the teacher is only 87.35% accurate on the
+training split, so ~1 in 8 soft targets is wrong while α=0.7 weights them
+above the true labels. See `EXPERIMENTS.md` for the full write-up.
+
+**What actually helps instead:** the deployed brain MRI model is seed 42,
+the *worst* of five seeds (82.04% against a 84.41% 5-seed mean, best seed
+85.71%). Reseeding is +3.67 points at byte-identical size and zero risk —
+more gain than distillation promised, with none of its complexity.
+
 ## API/UI surface
 
 When an ensemble prediction is served, `Prediction.per_model` (a list of

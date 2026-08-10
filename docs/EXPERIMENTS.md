@@ -72,6 +72,62 @@ over/under-stating exactly this kind of thing:
   The seed-42 runs reproduce the old artifacts exactly, which is what
   validates the new evaluation setup.
 
+### The deployed brain MRI model is the worst of five seeds
+
+Evaluating the four extra EfficientNet-B0 seed checkpoints standalone (they
+were trained as ensemble members, but never scored on their own) produced
+the most actionable finding in this whole line of work:
+
+| Plain EfficientNet-B0 | Accuracy | ROC-AUC |
+|---|---|---|
+| seed 42 — **currently deployed** | 82.04% | 0.9564 |
+| seed 0 | 84.49% | 0.9670 |
+| seed 1 | 84.90% | 0.9681 |
+| seed 2 | 84.90% | 0.9693 |
+| seed 3 | **85.71%** | 0.9690 |
+| **5-seed mean** | **84.41%** (95% CI 82.67–86.14) | **0.9660** (95% CI 0.9593–0.9726) |
+
+The live model sits at the very bottom of its own seed distribution.
+Retraining the identical architecture with seed 3 is **+3.67 accuracy
+points** at byte-identical checkpoint size (16.35MB), zero memory change,
+and zero deployment risk — a bigger, cheaper, and far more certain win than
+either the ensemble (blocked on memory) or distillation (below). The
+originally-published 82.04% was never wrong, it was just unlucky; nothing
+about it was known to be a low draw until the other seeds existed.
+
+### Knowledge distillation — tested, and it does not work here
+
+Full implementation in `ml/src/medchron/models/distill.py` (Hinton KD,
+T=4.0, α=0.7) with teacher soft targets cached by
+`ml/scripts/cache_teacher_logits.py` from the 3-way ensemble. The premise:
+the student is the same architecture and size as the deployed model, so any
+accuracy recovered from the 88.12% teacher would ship at zero memory cost.
+
+It made things **significantly worse**, on the same 5 seeds, paired t-test:
+
+| | Plain (5 seeds) | Distilled (5 seeds) | Δ | p |
+|---|---|---|---|---|
+| Accuracy | 84.41% | **81.88%** (95% CI 80.15–83.61) | **−2.53 pts** | 0.027 |
+| ROC-AUC | 0.9660 | **0.9580** (95% CI 0.9563–0.9598) | **−0.79 pts** | 0.014 |
+
+**Diagnosed mechanism, not a mystery.** The teacher scores only **87.35% on
+the training split itself** (val 85.10%, test 87.14%) — so roughly 1 in 8
+soft targets points at the wrong class, and α=0.7 weights those errors at
+more than double the true hard labels. Standard KD assumes a teacher that
+has effectively memorised its training data (typically >95% train
+accuracy); this ensemble never did, because its members were early-stopped
+around 8 epochs with augmentation. With only ~3.7 points of teacher
+headroom over a plain student and 12.65% of the guidance actively wrong,
+the soft targets are net noise rather than "dark knowledge".
+
+Worth testing if revisited (not attempted here): a much lower α so hard
+labels dominate, or masking the soft term on samples where the teacher
+disagrees with ground truth. Neither is likely to beat simply reseeding,
+which costs nothing and delivers more.
+
+The distillation code stays in the repo — it is correct, tested, and the
+negative result is only meaningful because the implementation is sound.
+
 ### 3-way ensemble vs. the published NAS paper (5 seeds, one-sample t-test)
 
 | Comparison | Ours (n=5) | Reference | Result |
@@ -150,7 +206,12 @@ Every subfolder as of this writing, so nothing in the repo is a mystery:
 | `brain_mri_2way_effnet_dense` | yes | 84.90% acc / 0.9660 AUC (seed 42, superseded by `ens2_seed*`) |
 | `brain_mri_densenet121_seed0..3` | no (checkpoints only) | ensemble members, evaluated via `ens2_*`/`ens3_*` |
 | `brain_mri_densenet121_solo` | yes | 83.06% acc / 0.9576 AUC |
-| `brain_mri_efficientnet_b0_seed0..3` | no (checkpoints only) | ensemble members, evaluated via `ens2_*`/`ens3_*` |
+| `brain_mri_distilled` | yes | 81.84% acc / 0.9560 AUC (distilled, seed 42) |
+| `brain_mri_distilled_seed0..3` | no (checkpoints only) | distilled students, evaluated via `distilled_eval_*` |
+| `brain_mri_efficientnet_b0_seed0..3` | no (checkpoints only) | ensemble members; standalone scores via `plain_effnet_seed*` |
+| `brain_mri_teacher_soft.npz` | (loose file) | cached 3-way ensemble soft targets, 3,264 rows |
+| `distilled_eval_seed0..3` | yes (each) | distilled student per seed; mean 81.88% / 0.9580 |
+| `plain_effnet_seed0..3` | yes (each) | plain EfficientNet-B0 per seed; mean (with seed 42) 84.41% / 0.9660 |
 | `brain_mri_ensemble` | yes | 87.14% acc / 0.9727 AUC (seed 42, superseded by `ens3_seed*`) |
 | `brain_mri_resnet50_seed0..3` | yes (each) | see table above |
 | `ens2_seed{42,0,1,2,3}` | yes (each) | 2-way ensemble per seed; mean 87.67% / 0.9741 |

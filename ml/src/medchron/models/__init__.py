@@ -8,6 +8,7 @@ from .backbone import (
     unfreeze_top_fraction,
 )
 from .dataset import MedChronDataset, Task, build_dataloaders, build_transforms
+from .distill import DistillConfig, TeacherCache, distill, distillation_loss
 from .detect import (
     BBoxSample,
     BBoxTrainConfig,
@@ -50,6 +51,10 @@ __all__ = [
     "build_transforms",
     "TrainConfig",
     "train",
+    "DistillConfig",
+    "TeacherCache",
+    "distill",
+    "distillation_loss",
     "compute_metrics",
     "compute_multilabel_metrics",
     "evaluate_checkpoint",
