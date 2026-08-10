@@ -143,6 +143,24 @@ deployable on the current hosting tier.**
   originally-published single run — was the *worst* of the five for both
   configurations, so the old 87.14%/84.90% figures understated them.
   ⛔ **Not deployed.**
+- **Knowledge distillation (attempt to escape the memory ceiling)** — ✅
+  built (`ml/src/medchron/models/distill.py`, Hinton KD with cached
+  ensemble soft targets) and ✅ evaluated over 5 seeds: ⛔ **it makes things
+  worse.** 81.88% vs plain training's 84.41% on the same seeds (paired
+  t-test p=0.027; ROC-AUC also down, p=0.014). Cause is diagnosed, not
+  guessed: the teacher is only 87.35% accurate on the *training* split, so
+  ~1 in 8 soft targets is wrong, and α=0.7 weights those errors above the
+  true labels. Standard KD assumes a teacher that memorised its training
+  data; these ensemble members were early-stopped at ~8 epochs and never
+  did. Code kept — the negative result only means something because the
+  implementation is correct.
+- **Reseeding the deployed brain MRI model** — 🎯 the actually-actionable
+  finding from all of the above. The live checkpoint is seed 42, the
+  **worst of five seeds**: 82.04% against a 84.41% 5-seed mean, with seed 3
+  reaching 85.71%. Swapping it is **+3.67 accuracy points** at
+  byte-identical checkpoint size (16.35MB), no memory change, and no
+  architectural risk — strictly better than what either the ensemble or
+  distillation was chasing.
   Two live deploy attempts (3-way, then 2-way) OOM'd / crash-looped Render's
   512MB free-tier instance. Root cause isolated with real measurements,
   not guesses: `AnalyzerService` eagerly loads every modality at startup, so
