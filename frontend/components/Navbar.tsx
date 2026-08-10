@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, BarChart3, Database, FileStack, ScanLine, ShieldCheck, Users } from "lucide-react";
+import { Activity, BarChart3, Database, FileStack, Microscope, ScanLine, ShieldCheck, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme";
 
@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/analyze", label: "Analyze", icon: ScanLine },
   { href: "/records", label: "Records", icon: FileStack },
   { href: "/evaluation", label: "Evaluation", icon: BarChart3 },
+  { href: "/case-study", label: "Case Study", icon: Microscope },
   { href: "/patients", label: "Patients", icon: Users },
   { href: "/datasets", label: "Datasets", icon: Database },
 ];

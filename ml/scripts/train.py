@@ -55,6 +55,7 @@ def main() -> None:
     ap.add_argument("--lr-head", type=float, default=1e-3)
     ap.add_argument("--lr-finetune", type=float, default=1e-5)
     ap.add_argument("--num-workers", type=int, default=0)
+    ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
     ap.add_argument("--resume", action="store_true",
                     help="resume from the last saved epoch in --out-dir (safe after a shutdown)")
@@ -72,6 +73,7 @@ def main() -> None:
         lr_head=args.lr_head,
         lr_finetune=args.lr_finetune,
         num_workers=args.num_workers,
+        seed=args.seed,
         device=args.device,
         out_dir=args.out_dir,
     )

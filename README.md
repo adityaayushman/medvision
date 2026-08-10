@@ -103,9 +103,23 @@ each measurably improved at their own task (IoU 0.043 → 0.068, then Dice
 detect → crop → classify pipeline, which stayed below the plain full-image
 baseline both times. Diagnosis: the classifier itself, trained only on
 official hand-verified crops, doesn't generalize to *any* automatically
-derived crop — the bottleneck was never localization accuracy. See
-`ml/src/medchron/models/detect.py` and `segment.py` for the (correct, tested,
-currently unused) code, and recent commit messages for the full numbers.
+derived crop — the bottleneck was never localization accuracy.
+
+Follow-up that tested that diagnosis directly: retraining the classifier on
+crops made from the segmenter's own predicted boxes (not ground truth),
+via `ml/scripts/crop_mammography_with_localizer.py`. That raised the full
+pipeline to a 5-seed mean of 56.6% acc (95% CI 55.2–58.0) / 0.584 AUC — the
+best end-to-end result yet (vs. 48.9%/0.541 pairing the same segmenter with
+the official-crop classifier) — confirming the mismatch diagnosis, and
+clearing the 55.0% CBIS-DDSM majority baseline, the first automatic pipeline
+attempt to do so (statistically significant at p=0.038, though the CI floor
+clears baseline by only 0.15 points). Still not deployed — a ~1.5-point
+margin isn't clinically useful, and it's
+still far below attempt 3's 71.1% standalone score; the remaining gap looks like the
+segmenter's own accuracy (Dice 0.254) now, not the crop-convention
+mismatch. See `ml/src/medchron/models/detect.py` and `segment.py` for the
+localizer code, and `ROADMAP.md`'s Version 2 section for the full
+six-attempt history and numbers.
 
 ## Run the full stack
 

@@ -82,7 +82,16 @@ const ATTEMPTS: Attempt[] = [
     method: "Reused the identical crop_to_bbox() function LocalizedPredictor calls at inference (factored out into shared code, not reimplemented) to materialize 2,742 training crops from ground-truth masks, then retrained attempt 3's classifier from scratch on them with the exact same hyperparameters.",
     result: "A real, measurable improvement: the full pipeline moved from 48.9% to 53.0% accuracy, confirming the framing-mismatch diagnosis was genuine. Still below both the 55% majority baseline and the 59.1% full-image baseline.",
     verdict: "partial",
-    diagnosis: "The remaining gap has a clear, different cause: this classifier trained on ground-truth (perfect) localization, but at inference it sees the segmenter's real, imperfect predictions (Dice 0.254) — a second, distinct train/inference mismatch, this time about localization quality rather than framing style. The untried next step: train the classifier on the segmenter's actual predicted crops, noise and all, not ground truth.",
+    diagnosis: "The remaining gap has a clear, different cause: this classifier trained on ground-truth (perfect) localization, but at inference it sees the segmenter's real, imperfect predictions (Dice 0.254) — a second, distinct train/inference mismatch, this time about localization quality rather than framing style. Next hypothesis, tested directly in attempt 7: train the classifier on the segmenter's actual predicted crops, noise and all, not ground truth.",
+  },
+  {
+    n: 7,
+    title: "Retrain the classifier on the segmenter's own predicted crops",
+    hypothesis: "Attempt 6 fixed the framing convention but still trained on perfect, ground-truth localization. If the remaining mismatch is exposure to the segmenter's real, imperfect predictions rather than framing style, training on the segmenter's actual predicted boxes — noise included — should close more of the gap.",
+    method: "A new script (crop_mammography_with_localizer.py) runs the trained U-Net segmenter's own predict_box() — not ground truth — over all 2,857 mammograms, crops each with the same crop_to_bbox(pad_frac=0.15) used everywhere else in this pipeline, and retrains attempt 3's classifier from scratch on those 2,857 auto-derived crops.",
+    result: "The full pipeline improved again — and unlike every earlier attempt, this one was re-run across 5 seeds rather than reported from a single run: mean 56.6% accuracy (95% CI 55.2–58.0), ROC-AUC 0.584 (95% CI 0.560–0.607). That's the best full-pipeline result across all seven attempts, up from attempt 6's 53.0% / 0.534, and the first automatic (no-ground-truth) pipeline to clear the 55.0% CBIS-DDSM majority baseline at all. (The retrained classifier alone scores lower on its own noisier test crops — 56.4% — than attempt 6's ground-truth-trained classifier; expected, since real localizer noise is a harder training signal than a clean annotation. The pipeline number is what matters.)",
+    verdict: "thin-win",
+    diagnosis: "Confirms the second mismatch diagnosed in attempt 6: exposure to real localizer noise mattered more than matching the ground-truth framing convention alone. The seed statistics keep that claim honest in both directions — the accuracy win over baseline is statistically significant (p=0.038), but the confidence interval's lower bound clears baseline by just 0.15 points, and per-seed results ranged 55.0–58.2%. The sturdier evidence of real signal is ROC-AUC sitting well above chance (p=0.0005). Either way a ~1.5-point margin over majority guessing isn't clinically useful, and it's still far below attempt 3's 71.1%. With both mismatch hypotheses now tested, the remaining gap is most plausibly the segmenter's own accuracy ceiling (Dice 0.254 is real, but not high) — not deployed.",
   },
 ];
 
@@ -97,6 +106,7 @@ const SUMMARY = [
   { label: "4 — Pipeline (bbox regression)", acc: 0.498, auc: 0.486 },
   { label: "5 — Pipeline (U-Net segmentation)", acc: 0.489, auc: 0.541 },
   { label: "6 — Pipeline (GT-crop classifier)", acc: 0.53, auc: 0.534 },
+  { label: "7 — Pipeline (auto-crop, mean of 5 seeds)", acc: 0.5658, auc: 0.5835 },
 ];
 
 export default function CaseStudy() {
@@ -107,7 +117,7 @@ export default function CaseStudy() {
           <Microscope className="h-3.5 w-3.5" /> Case study
         </div>
         <h1 className="text-2xl font-bold sm:text-3xl">
-          Mammography: six honest attempts, one real win, and why it still isn&rsquo;t deployed
+          Mammography: seven honest attempts, one real win, and why it still isn&rsquo;t deployed
         </h1>
         <p className="mt-3 max-w-2xl text-sm text-ink-3">
           Most write-ups of a failed feature don&rsquo;t get written at all. This one does, because
@@ -124,7 +134,7 @@ export default function CaseStudy() {
 
       {/* summary table */}
       <section className="card overflow-x-auto p-5">
-        <h2 className="mb-4 text-sm font-semibold text-ink">All six attempts, at a glance</h2>
+        <h2 className="mb-4 text-sm font-semibold text-ink">All seven attempts, at a glance</h2>
         <table className="w-full min-w-[480px] text-sm">
           <thead>
             <tr className="text-left text-xs uppercase tracking-wide text-ink-4">
@@ -217,9 +227,11 @@ export default function CaseStudy() {
               the pipeline before attempt 6 identified and partially confirmed this.
             </li>
             <li>
-              <strong className="text-ink">A precise, falsifiable next hypothesis</strong>, not a shrug:
-              train the classifier on the segmenter&rsquo;s actual predicted crops, not ground truth. That&rsquo;s
-              directly testable, and it&rsquo;s written down here instead of lost in a chat transcript.
+              <strong className="text-ink">A precise, falsifiable hypothesis that got tested</strong>, not
+              just written down: attempt 7 trained the classifier on the segmenter&rsquo;s actual predicted
+              crops, and the pipeline improved again (53.0% &rarr; 56.6%) — confirming real localizer noise
+              mattered more than framing convention alone. That leaves an equally precise next question:
+              is the segmenter&rsquo;s own accuracy (Dice 0.254) now the ceiling?
             </li>
           </ul>
           <p>
