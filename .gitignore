@@ -51,3 +51,6 @@ out/
 Thumbs.db
 .idea/
 .vscode/
+
+# TypeScript incremental build cache
+frontend/tsconfig.tsbuildinfo
