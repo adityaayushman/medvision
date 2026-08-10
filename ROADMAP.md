@@ -191,6 +191,36 @@ manually in Render's dashboard (`sync: false` keeps it out of the repo on
 principle — the backend is already Postgres-ready, `psycopg2-binary` is
 installed and `db.py` normalizes `postgres://` URLs correctly).
 
+## Cross-dataset generalization
+**Status: done for brain MRI (it generalizes) and mammography (it doesn't).
+Chest X-ray still untested.**
+
+Every other number on this platform came from a split of the same dataset a
+model trained on. This tested whether anything survives a different source.
+
+- **Leakage first, because it had to be.** The one label-compatible second
+  brain-MRI dataset (`masoudnickparvar`, 7,200 images) turned out to be
+  **63.5% copies of this project's own training data** — 2,633 byte-identical
+  plus 1,939 re-encoded near-duplicates, measured with a new
+  `ml/scripts/find_duplicate_images.py` (MD5 + dHash), self-tested to 100%
+  recall before being trusted. Evaluating on it naively — the common practice
+  — would have reported mostly memorisation.
+- **Brain MRI generalizes.** On the 2,628 genuinely-unseen images: **89.31%
+  acc / 0.979 AUC** for the deployed single model, **90.64% / 0.982** for the
+  3-way ensemble — both *above* the 85.71% in-domain number. Notably the
+  contaminated set scored no higher than the clean one, proving the model
+  never memorised its training data (the same property that made distillation
+  fail). The likely reason external beats in-domain is label noise in the
+  SARTAJ source rather than model quality — an inference, not a measurement.
+- **Mammography does not.** Through the full production pipeline on MIAS's
+  115 Benign/Malignant images: 49.6% (CBIS-crop classifier) and 52.2%
+  (auto-crop classifier), both *below* the 55.65% majority baseline, neither
+  significantly so at this n. ROC-AUC stays ~0.60, so weak ranking signal
+  survives while the decision threshold does not transfer. Consistent with
+  mammography remaining undeployed.
+- **Still open:** chest X-ray had no label-compatible second source on hand,
+  and none of this is multi-site clinical validation.
+
 ## Version 5 — Mobile Companion
 **Status: not started.** The pragmatic path: make the existing Next.js
 frontend installable (manifest + service worker + camera-capture upload

@@ -207,6 +207,125 @@ Full method write-ups for each attempt live in `ROADMAP.md`'s Version 2
 section and the live `/case-study` page — this table exists to give the
 verified numbers a single place to be checked against source files.
 
+## Cross-dataset generalization
+
+Every other number in this document comes from a split of the *same* dataset
+the model trained on. This section is the only evidence here that anything
+survives contact with data from a different source — the question a clinical
+reviewer asks first.
+
+### The leakage trap (and why deduplication *is* the experiment)
+
+The natural second brain-MRI dataset,
+`masoudnickparvar/brain-tumor-mri-dataset` (7,200 images), shares this
+project's exact 4 classes — a rare label-compatible match. It is also a
+*compilation* that re-packages the SARTAJ set this project trains on.
+Measured with `ml/scripts/find_duplicate_images.py` (MD5 for exact copies,
+64-bit dHash with Hamming ≤ 5 for re-encoded/resized copies):
+
+| | Count | Share of external set |
+|---|---|---|
+| Exact MD5 duplicates of our training images | 2,633 | 36.6% |
+| Near-duplicates (dHash ≤ 5) | 1,939 | 26.9% |
+| **Total overlapping** | **4,572** | **63.5%** |
+| Genuinely unseen | 2,628 | 36.5% |
+
+**63.5% of that "independent" dataset is our own training data.** Evaluating
+on it naively — which is the common practice — would report a generalization
+number that is mostly memorisation.
+
+Threshold choice, stated because it is a judgement call: same-class agreement
+among flagged pairs degrades with Hamming distance (100% for exact/0, 94% at
+1, 85% at 2, 76% at 3, 71% at 4, 65% at 5, against ~25–30% chance). Brain MRI
+slices genuinely collide at 8×8, so roughly a third of the far near-dup flags
+are coincidental. Keeping ≤ 5 is deliberately **conservative**: it discards
+~670 genuinely-unseen images, costing test-set size, but it cannot leave
+leakage in — and leakage is the error that would *inflate* the claim. The
+strict (exact-only) variant bounds the other side. The detector was
+sanity-checked against the training set *itself* first, where it must and does
+report 100% overlap.
+
+### Brain MRI — it generalizes, and better than in-domain
+
+Deployed checkpoint (EfficientNet-B0, seed 3), zero-shot, no retraining:
+
+| Evaluation set | n | Accuracy | 95% CI | ROC-AUC |
+|---|---|---|---|---|
+| In-domain test (own split) | 490 | 85.71% | — | 0.9690 |
+| **External, clean (unseen only)** | **2,628** | **89.31%** | **[88.06, 90.46]** | **0.9786** |
+| External, strict (exact removed) | 4,567 | 90.23% | [89.34, 91.08] | 0.9814 |
+| External, all (contaminated) | 7,200 | 89.19% | [88.45, 89.90] | 0.9793 |
+| *3-way ensemble*, external clean | 2,628 | 90.64% | [89.46, 91.73] | 0.9822 |
+
+The **3-way ensemble also generalizes, and stays ahead of the single model
+out-of-domain** (90.64% vs 89.31% on the same 2,628 unseen images). Its CI
+overlaps the single model's, so this is a consistent edge rather than a
+significant one — but it holds in the same direction as in-domain, which is
+reassuring for an ensemble that is still blocked from deployment on memory
+grounds rather than accuracy.
+
+Two things worth reading carefully:
+
+**The contaminated set scores no higher than the clean set** (89.19% vs
+89.31%). If leakage were inflating results, the set that is 63.5% training
+images should have scored *higher*. It did not — meaning this model never
+memorised its training data. That independently corroborates two earlier
+measurements: the 3-way ensemble reached only 87.35% on the training split,
+and that same lack of memorisation is precisely why distillation failed
+(above). So the leakage here was **massive in extent but not inflationary**,
+which is what makes the 89.31% trustworthy rather than lucky.
+
+**External accuracy (89.31%) exceeds in-domain (85.71%)**, which is
+backwards from the usual domain-shift expectation. The most likely
+explanation is *label quality*, not model quality: the `sartajbhuvaji` set is
+known to carry label noise (notably in the glioma class) — which is a stated
+reason the `masoudnickparvar` compilation was rebuilt. If so, our in-domain
+number is depressed by test-label errors while the external clean portion
+(largely figshare + Br35H) is cleaner. **This is an inference, not something
+measured here** — confirming it would need ground-truth re-labelling, which
+was not attempted. Either way the generalization claim stands; only the
+explanation for the gap is uncertain.
+
+### Mammography — it does not generalize
+
+MIAS is a genuinely independent source (different institutions, different
+era, different digitisation) from the CBIS-DDSM these models trained on, so
+no deduplication is needed. Its 115 Benign/Malignant images, evaluated
+zero-shot through the full production pipeline (segmenter → crop →
+classifier):
+
+| Classifier (via localized pipeline) | Accuracy | 95% CI | ROC-AUC | vs 55.65% baseline |
+|---|---|---|---|---|
+| CBIS official-crop trained | 49.57% | [40.11, 59.04] | 0.604 | below (p=0.19) |
+| Auto-crop trained | 52.17% | [42.66, 61.57] | 0.595 | below (p=0.46) |
+
+**Both land below the 55.65% majority-class baseline** — on a different
+dataset, this pipeline is worse than always guessing "Benign". Neither gap is
+statistically significant at n=115, so the honest statement is "no evidence
+it beats majority guessing," not "proven worse."
+
+One nuance that matters: **ROC-AUC stays near 0.60, above chance**, while
+accuracy sits below baseline. That combination means the model retains some
+genuine ranking ability across domains, but its *decision threshold* does not
+transfer — it is miscalibrated for MIAS's class balance. A recalibrated
+threshold might recover accuracy; the underlying signal is weak but not
+absent.
+
+Stated upfront rather than buried: n=115 gives roughly a ±9-point CI. This
+can answer "does it collapse to chance?" — it can't support a precise
+accuracy claim.
+
+### What this section does and doesn't establish
+
+- Brain MRI generalizes to an independent compilation at 89.31% (single
+  model) / 90.64% (3-way ensemble) — a real, well-powered (n=2,628) result.
+- Mammography does not transfer to MIAS, consistent with it remaining
+  undeployed.
+- Chest X-ray was **not** tested cross-dataset; no label-compatible second
+  source was on hand. That gap is still open.
+- All of this is still one *modality-level* comparison per model, not a
+  multi-site clinical validation.
+
 ## Full `ml/artifacts/` reference table
 
 Every subfolder as of this writing, so nothing in the repo is a mystery:
@@ -223,6 +342,11 @@ Every subfolder as of this writing, so nothing in the repo is a mystery:
 | `brain_mri_teacher_soft.npz` | (loose file) | cached 3-way ensemble soft targets, 3,264 rows |
 | `distilled_eval_seed0..3` | yes (each) | distilled student per seed; mean 81.88% / 0.9580 |
 | `plain_effnet_seed0..3` | yes (each) | plain EfficientNet-B0 per seed; mean (with seed 42) 84.41% / 0.9660 |
+| `brain_mri_overlap.csv` | (loose file) | 4,572 leakage pairs between our training set and the external dataset |
+| `xdata_single_{clean,strict,all}` | yes (each) | cross-dataset brain MRI, deployed model; clean 89.31% / 0.9786 |
+| `xdata_ens3_clean` | yes | cross-dataset brain MRI, 3-way ensemble; 90.64% / 0.9822 |
+| `xdata_mias_cbiscrop` | yes | cross-dataset mammography (MIAS), CBIS-crop classifier; 49.57% / 0.604 |
+| `xdata_mias_autocrop` | yes | cross-dataset mammography (MIAS), auto-crop classifier; 52.17% / 0.595 |
 | `brain_mri_ensemble` | yes | 87.14% acc / 0.9727 AUC (seed 42, superseded by `ens3_seed*`) |
 | `brain_mri_resnet50_seed0..3` | yes (each) | see table above |
 | `ens2_seed{42,0,1,2,3}` | yes (each) | 2-way ensemble per seed; mean 87.67% / 0.9741 |
