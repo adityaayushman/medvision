@@ -85,7 +85,7 @@ tensor = pipe.model_input(result)      # 224x224x3 float32, ready for a backbone
 | Backend (FastAPI + auth + patient records + timeline) | ✅ **live** |
 | Frontend (Next.js analyze/records + clinical dashboard) | ✅ **live** |
 | Chest X-ray | ✅ **live** — 64% acc, ROC-AUC 0.825 |
-| Brain MRI (4-class tumor classification) | ✅ **live** — 82.0% acc, macro F1 0.819, ROC-AUC 0.956 |
+| Brain MRI (4-class tumor classification) | ✅ **live** — 85.7% acc, macro F1 0.861, ROC-AUC 0.969 (reseeded; the previous 82.0% checkpoint was the worst of 5 seeds — see `docs/EXPERIMENTS.md`) |
 | Brain MRI ensemble (2-3 EfficientNet-B0/ResNet50/DenseNet121) | ✅ built, evaluated, beats the single-model baseline — **not deployed**: its own memory footprint (~490-580MB, measured with the exact CPU-only torch build Render runs) exceeds the free tier's 512MB ceiling regardless of loading strategy |
 | Mammography (Benign/Malignant) | ⏸️ **not deployed** — see below |
 | AI-assisted report drafting | ✅ **live** |

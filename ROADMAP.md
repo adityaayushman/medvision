@@ -38,7 +38,7 @@ independent modeling attempts, each a real, evaluated result.
 | Modality | Status | Real result |
 |---|---|---|
 | Chest X-ray | ✅ Live (v1) | accuracy 64%, ROC-AUC 0.825 |
-| Brain MRI (4-class tumor classification) | ✅ Live | accuracy 82.0%, macro F1 0.819, ROC-AUC 0.956 (held-out test, sartajbhuvaji/brain-tumor-classification-mri, 3,264 images) |
+| Brain MRI (4-class tumor classification) | ✅ Live | accuracy 85.7%, macro F1 0.861, ROC-AUC 0.969 (held-out test, sartajbhuvaji/brain-tumor-classification-mri, 3,264 images) — reseeded from the original 82.0% checkpoint, which turned out to be the worst of 5 seeds |
 | Mammography (Benign/Malignant) | ⏸️ **Not serving predictions** | see below |
 
 A cross-modality bug was caught and fixed along the way: quality-gate

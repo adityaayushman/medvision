@@ -80,20 +80,31 @@ the most actionable finding in this whole line of work:
 
 | Plain EfficientNet-B0 | Accuracy | ROC-AUC |
 |---|---|---|
-| seed 42 — **currently deployed** | 82.04% | 0.9564 |
+| seed 42 — *previously deployed* | 82.04% | 0.9564 |
 | seed 0 | 84.49% | 0.9670 |
 | seed 1 | 84.90% | 0.9681 |
 | seed 2 | 84.90% | 0.9693 |
-| seed 3 | **85.71%** | 0.9690 |
+| seed 3 — ✅ **now deployed** | **85.71%** | 0.9690 |
 | **5-seed mean** | **84.41%** (95% CI 82.67–86.14) | **0.9660** (95% CI 0.9593–0.9726) |
 
-The live model sits at the very bottom of its own seed distribution.
-Retraining the identical architecture with seed 3 is **+3.67 accuracy
-points** at byte-identical checkpoint size (16.35MB), zero memory change,
-and zero deployment risk — a bigger, cheaper, and far more certain win than
-either the ensemble (blocked on memory) or distillation (below). The
-originally-published 82.04% was never wrong, it was just unlucky; nothing
-about it was known to be a low draw until the other seeds existed.
+The old live model sat at the very bottom of its own seed distribution.
+Swapping to seed 3 was **+3.67 accuracy points** at byte-identical
+checkpoint size (16.35MB), zero memory change, and zero deployment risk — a
+bigger, cheaper, and far more certain win than either the ensemble (blocked
+on memory) or distillation (below). The originally-published 82.04% was
+never wrong, it was just unlucky; nothing about it was known to be a low
+draw until the other seeds existed.
+
+**This has been actioned:** `backend/model/model_efficientnet_b0_brain_mri.pt`
+is now the seed-3 checkpoint (verified: identical class ordering, loads
+through the unmodified `Predictor`). Headline brain MRI numbers across the
+README, ROADMAP, and `/evaluation` now read 85.71% / 0.969.
+
+One caveat stated plainly: this gain is measured on the same held-out test
+split used for every other number in this project. It is the best available
+estimate and is consistent with how everything else here is reported, but it
+is not independent validation on a second dataset — see the cross-dataset
+item in the roadmap.
 
 ### Knowledge distillation — tested, and it does not work here
 
