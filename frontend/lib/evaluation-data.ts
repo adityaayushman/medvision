@@ -144,7 +144,8 @@ export const EVALUATIONS: Record<string, ModalityEvaluation> = {
     supplementaryNote:
       "Two follow-up experiments since this model shipped, both real and reproducible, " +
       "neither live: a 3-way ensemble (EfficientNet-B0 + ResNet50 + DenseNet121, soft-voted) " +
-      "reaches 87.1% accuracy / 0.973 ROC-AUC, clearly ahead of the single model below -- but " +
+      "averages 88.1% accuracy / 0.977 ROC-AUC over 5 seeds (95% CI 87.4-88.9% acc), clearly " +
+      "ahead of the single model below -- but " +
       "its own memory footprint (measured with the exact CPU-only torch build the production " +
       "server runs) is ~490-580MB, at or over the entire 512MB hosting ceiling by itself, before " +
       "anything else in the process. Separately, a same-recipe backbone comparison found ResNet50 " +
@@ -242,13 +243,17 @@ export const EVALUATIONS: Record<string, ModalityEvaluation> = {
             "our CI, p<0.000001).",
         },
         {
-          system: "MedChron 3-way ensemble",
-          accuracy: 0.8714,
-          roc_auc: 0.9727,
+          system: "MedChron 3-way ensemble (mean of 5 seeds)",
+          accuracy: 0.8812,
+          roc_auc: 0.9771,
           citation: "This project — not deployed (memory ceiling)",
           url: "",
           ours: true,
-          caveat: "Single run — not yet re-tested across seeds, unlike the ResNet50 result above.",
+          caveat:
+            "95% CI: 87.4–88.9% acc, 97.4–98.0% AUC (seeds 42,0,1,2,3). Significantly ABOVE the " +
+            "LeaSE+DARTS SOTA on ROC-AUC (p=0.000057) and significantly BELOW it on accuracy " +
+            "(p=0.00076) — both real, neither quotable alone. An earlier single run (seed 42, " +
+            "87.14%) understated this: seed 42 was the worst of the five.",
         },
       ],
       takeaway:
@@ -280,7 +285,17 @@ export const EVALUATIONS: Record<string, ModalityEvaluation> = {
       "doesn't generalize to an automatically-derived one, however accurately it's centered. " +
       "A third attempt -- retraining the classifier on ground-truth-derived crops matching the " +
       "pipeline's own framing -- recovered some of that gap (53.0% acc, up from 48.9%) but still " +
-      "fell short. Full experiment history (9 mammography runs) is in the Research Workspace.",
+      "fell short. A fourth attempt tested the other half of that diagnosis directly: retraining " +
+      "the classifier on crops from the segmenter's own predicted boxes (real localizer noise, " +
+      "not ground truth). That's the best full pipeline result yet -- a 5-seed mean of 56.6% acc " +
+      "(95% CI 55.2-58.0) / 0.584 AUC -- clearing the 55.0% CBIS-DDSM majority baseline, the first " +
+      "automatic pipeline attempt to do so. That win is statistically significant (p=0.038) but the " +
+      "CI floor clears baseline by only 0.15 points; the sturdier signal is ROC-AUC well above " +
+      "chance (p=0.0005). Still not deployed -- a ~1.5-point margin isn't clinically useful, and " +
+      "it's still far below the 71.1% standalone score above. The remaining shortfall now looks " +
+      "like the segmenter's own accuracy (Dice 0.254) rather than the crop-convention mismatch, " +
+      "which this run isolated and addressed. Full experiment " +
+      "history (15 mammography runs) is in the Research Workspace.",
     modelInfo: {
       name: "EfficientNet-B0",
       task: "2-class mammography classification (Benign / Malignant)",
