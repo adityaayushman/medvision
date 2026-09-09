@@ -1,5 +1,29 @@
 # Paper assets
 
+`paper.pdf` is the compiled IEEE two-column PDF (7 pages), built from
+`paper.tex` and this folder's tables and figures. It was produced with
+[Tectonic](https://tectonic-typesetting.github.io/) rather than a full
+TeX Live/MiKTeX install, since Tectonic is a single ~50MB binary that
+fetches only the packages a document actually uses (about 43MB for this
+paper) instead of several gigabytes.
+
+To recompile after editing `paper.tex` or regenerating a table/figure:
+
+```bash
+# one-time: download the binary for your platform from
+# https://github.com/tectonic-typesetting/tectonic/releases
+# (use the -msvc- build on Windows; the -gnu- build fails to load
+# api-ms-win-core-winrt-error-l1-1-0.dll on some systems)
+
+tectonic -o build paper.tex
+cp build/paper.pdf paper.pdf
+```
+
+If a full LaTeX distribution is already installed, `pdflatex paper.tex`
+run twice (for cross-references) works identically. Overleaf, which has
+IEEEtran preinstalled, is the simplest option if no local toolchain is
+available.
+
 Tables (`tables/*.tex`) and figures (`figures/*.pdf`, `.png`) generated from
 `ml/artifacts/*/metrics.json` by `ml/scripts/make_paper_assets.py`. Nothing
 in this folder is typed by hand; regenerate with that script after any new
