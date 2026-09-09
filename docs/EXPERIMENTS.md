@@ -10,15 +10,58 @@ for how the brain MRI ensembles work mechanically.
 
 ## Chest X-ray
 
-| Run | Backbone | Result | Status |
-|---|---|---|---|
-| `ml/artifacts/rsna_real` | EfficientNet-B0 | 64.0% acc / 0.825 ROC-AUC | ✅ live |
+| Run | Backbone | Training set | Result | Status |
+|---|---|---|---|---|
+| `ml/artifacts/rsna_real` | EfficientNet-B0 | 5,000-image subset | 64.0% acc / 0.8253 AUC | ✅ live |
+| `ml/artifacts/rsna_full_seed42` | EfficientNet-B0 | **full 26,684** | 65.87% acc / **0.8507** AUC | evaluated, not deployed |
 
 3-class RSNA pneumonia task (Normal / Lung Opacity / No Lung Opacity-Not
-Normal), trained on a 5,000-image class-balanced subset (not the full
-~26k-image set) on CPU — a deliberate reproducibility baseline, not the
-strongest possible number; see `frontend/lib/evaluation-data.ts`'s
+Normal). The live model was trained on a 5,000-image class-balanced subset
+(not the full ~26k set) on CPU — a deliberate reproducibility baseline, not
+the strongest possible number; see `frontend/lib/evaluation-data.ts`'s
 `chest_xray.literature` section for the honest gap-to-literature writeup.
+
+### Full-dataset retrain: significant on AUC, not on accuracy
+
+The subset was a self-imposed CPU-era constraint, so the obvious test was
+retraining on all 26,684 images with the identical recipe. Both models were
+then scored on the **same 750 test images** — verified first to have *zero*
+leakage in either direction (neither model trained on any image in the
+other's test split), with the 750 being a strict subset of the full test
+split the new model never saw.
+
+| Metric (same 750 images) | 5k subset | Full 26,684 | Δ | p |
+|---|---|---|---|---|
+| Accuracy | 64.00% | 65.87% | +1.87 pts | 0.449 — **not significant** |
+| **ROC-AUC** | 0.8253 | **0.8507** | **+0.0254** | **<0.0001 — significant** |
+
+The AUC difference has a paired-bootstrap 95% CI of **[+0.0135, +0.0379]**
+(2,000 resamples, `ml/scripts/auc_bootstrap.py`), which excludes zero.
+
+**Why the two metrics disagree, and why AUC is the one to believe here:**
+accuracy at n=750 is a thresholded, high-variance statistic — the p=0.449
+reflects insufficient power, not absence of effect. ROC-AUC is
+threshold-independent and lower-variance, so the same 750 images resolve
+decisively what accuracy could not. On the metric that actually matters for
+a screening tool — ranking ability independent of operating point — more
+data genuinely helped.
+
+On its own larger test split (n=4,003) the full-data model scores 67.00% acc
+/ 0.8540 AUC, but that is *not* comparable to the 64.0% figure (different
+sample); the 750-image paired comparison above is the honest one.
+
+**Caveat, stated plainly:** both arms are **single seeds**. The bootstrap
+proves these two specific models differ; it does not fully separate "more
+data helps" from "this seed was lucky." A 5-seed campaign was started and
+abandoned after ~12 GPU-hours (each run is ~6-7 h at ~25 min/epoch, and
+repeated session teardowns plus host memory exhaustion made it
+impractical). Partial evidence: seed 0 reached 65.6% val vs seed 42's 64.8%
+at the same epoch before it was interrupted, i.e. tracking closely rather
+than diverging. For scale, EfficientNet-B0's 5-seed AUC spread on brain MRI
+was ~0.013, roughly half the +0.0254 gap observed here.
+
+**Not deployed.** The accuracy gain is inside seed noise, and a production
+swap on a single-seed AUC result did not meet this project's own bar.
 
 **Not a result**: the loose files at `ml/artifacts/metrics.json` /
 `history.json` / `confusion_matrix.png` / `roc_curve.png` (repo root of
