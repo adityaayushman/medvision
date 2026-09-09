@@ -54,3 +54,4 @@ Thumbs.db
 
 # TypeScript incremental build cache
 frontend/tsconfig.tsbuildinfo
+paper/build/
