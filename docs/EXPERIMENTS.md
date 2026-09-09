@@ -318,16 +318,44 @@ and that same lack of memorisation is precisely why distillation failed
 (above). So the leakage here was **massive in extent but not inflationary**,
 which is what makes the 89.31% trustworthy rather than lucky.
 
-**External accuracy (89.31%) exceeds in-domain (85.71%)**, which is
-backwards from the usual domain-shift expectation. The most likely
-explanation is *label quality*, not model quality: the `sartajbhuvaji` set is
-known to carry label noise (notably in the glioma class) — which is a stated
-reason the `masoudnickparvar` compilation was rebuilt. If so, our in-domain
-number is depressed by test-label errors while the external clean portion
-(largely figshare + Br35H) is cleaner. **This is an inference, not something
-measured here** — confirming it would need ground-truth re-labelling, which
-was not attempted. Either way the generalization claim stands; only the
-explanation for the gap is uncertain.
+**External accuracy (89.31%) exceeds in-domain (85.71%)** — raw gap +3.59
+points, which is backwards from the usual domain-shift expectation. An
+earlier draft of this document attributed that to label noise in the
+`sartajbhuvaji` source. **That explanation was tested and is wrong**, and
+what replaces it is measured rather than inferred.
+
+*Hypothesis 1 — label noise. Refuted.* If SARTAJ mislabels images and the
+external compilation corrected them, the same physical image would carry
+different labels in the two datasets. Across all **2,633 byte-identical
+(MD5) images present in both**, labels agree **2,633 / 2,633 = 100.00%**.
+There is zero label disagreement, so label noise cannot explain the gap.
+
+*Hypothesis 2 — class composition. Confirmed, and it explains about a
+third.* Accuracy is a support-weighted average of per-class recall, and
+deduplication changed the class mix: the external clean set holds fewer of
+this model's hardest class (meningioma, 21.0% vs 28.8% in-domain) and more
+of its easiest (no-tumor, 25.1% vs 15.3%). Reweighting the external
+per-class recalls to the *in-domain* class proportions:
+
+| | Accuracy |
+|---|---|
+| External, raw | 89.31% |
+| External, reweighted to in-domain class mix | **88.11%** |
+| In-domain | 85.71% |
+
+Composition alone accounts for **33%** of the raw gap.
+
+*What survives.* The residual +2.39 points is **not statistically
+significant** (z=1.40, p=0.163, 95% CI **[−0.97, +5.75]** points) — the
+interval includes zero. The raw gap was significant (p=0.021); after
+adjusting for class composition, it is not.
+
+**The defensible claim is therefore "generalizes at least as well as
+in-domain," not "generalizes better than in-domain."** The stronger
+statement does not survive scrutiny, and no speculative explanation is
+needed once composition is accounted for. What remains solid is the
+headline result itself: 89.31% on 2,628 genuinely-unseen images from an
+independent compilation, with a tight CI.
 
 ### Mammography — it does not generalize
 

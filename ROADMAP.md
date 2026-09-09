@@ -207,11 +207,19 @@ model trained on. This tested whether anything survives a different source.
   — would have reported mostly memorisation.
 - **Brain MRI generalizes.** On the 2,628 genuinely-unseen images: **89.31%
   acc / 0.979 AUC** for the deployed single model, **90.64% / 0.982** for the
-  3-way ensemble — both *above* the 85.71% in-domain number. Notably the
-  contaminated set scored no higher than the clean one, proving the model
-  never memorised its training data (the same property that made distillation
-  fail). The likely reason external beats in-domain is label noise in the
-  SARTAJ source rather than model quality — an inference, not a measurement.
+  3-way ensemble. Notably the contaminated set scored no higher than the
+  clean one, proving the model never memorised its training data (the same
+  property that made distillation fail).
+- **Why external appears to beat in-domain — measured, not guessed.** An
+  earlier draft blamed label noise in the SARTAJ source. That was **tested
+  and refuted**: across all 2,633 byte-identical images shared by the two
+  datasets, labels agree 100.00% (0 disagreements). What does explain it is
+  class composition — deduplication left fewer of the hardest class
+  (meningioma) and more of the easiest (no-tumor). Reweighting external
+  per-class recall to the in-domain class mix drops 89.31% → 88.11%,
+  accounting for 33% of the raw +3.59-point gap; the residual +2.39 is **not
+  significant** (p=0.163, 95% CI [−0.97, +5.75]). So the defensible claim is
+  **"generalizes at least as well as in-domain,"** not "better than."
 - **Mammography does not.** Through the full production pipeline on MIAS's
   115 Benign/Malignant images: 49.6% (CBIS-crop classifier) and 52.2%
   (auto-crop classifier), both *below* the 55.65% majority baseline, neither
