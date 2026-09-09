@@ -1,0 +1,20 @@
+\begin{table}[t]
+\centering
+\caption{Mammography: seven attempts. Only the crop-input classifier (3) clears a useful margin, and it requires a pre-cropped lesion the deployment path cannot supply. Attempt 7 is a five-seed mean.}
+\label{tab:mammography}
+\begin{tabular}{lcc}
+\toprule
+Attempt & Accuracy (\%) & ROC-AUC \\
+\midrule
+1. MIAS, full images & 59.18 & 0.6176 \\
+2. CBIS-DDSM, full images & 59.13 & 0.6416 \\
+3. CBIS-DDSM, official crops & 71.12 & 0.7849 \\
+4. Pipeline: bbox regressor & 49.77 & 0.4861 \\
+5. Pipeline: U-Net segmenter & 48.86 & 0.5409 \\
+6. Pipeline: GT-crop classifier & 52.97 & 0.5341 \\
+7. Pipeline: auto-crop (5 seeds) & 56.58 \tiny{[55.17, 57.98]} & 0.5835 \\
+\midrule
+\textit{Majority-class baseline} & 55.02 & --- \\
+\bottomrule
+\end{tabular}
+\end{table}

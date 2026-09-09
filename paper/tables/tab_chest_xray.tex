@@ -1,0 +1,13 @@
+\begin{table}[t]
+\centering
+\caption{Chest X-ray: training-set size, evaluated on the \emph{same} 750 test images. Accuracy cannot resolve the difference; ROC-AUC can. AUC $p$-value from a paired bootstrap (2000 resamples).}
+\label{tab:chest_xray}
+\begin{tabular}{lccc}
+\toprule
+Metric & 5k subset & Full 26{,}684 & $p$ \\
+\midrule
+Accuracy (\%) & 64.00 & 65.87 & 0.449 (n.s.) \\
+ROC-AUC & 0.8253 & 0.8507 & $<$0.0001 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,17 @@
+\begin{table}[t]
+\centering
+\caption{Cross-dataset evaluation on an external brain MRI compilation, before and after removing images that duplicate our training data. 63.5\% of the external set overlaps; the contaminated split scores no higher than the clean one.}
+\label{tab:crossdata}
+\begin{tabular}{lrcc}
+\toprule
+External split & $n$ & Accuracy (\%) & ROC-AUC \\
+\midrule
+All (contaminated) & 7200 & 89.19 & 0.9793 \\
+Exact duplicates removed & 4567 & 90.23 & 0.9814 \\
+Exact + near removed (clean) & 2628 & 89.31 & 0.9786 \\
+Clean, 3-way ensemble & 2628 & 90.64 & 0.9822 \\
+\midrule
+\textit{In-domain reference} & 490 & 85.71 & 0.9690 \\
+\bottomrule
+\end{tabular}
+\end{table}

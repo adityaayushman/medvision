@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\caption{Brain MRI, 4-class tumour classification. Mean of five seeds $\{42,0,1,2,3\}$ with 95\% confidence intervals; identical manifest and split for every row ($n=490$ test images).}
+\label{tab:brain_mri}
+\begin{tabular}{lcc}
+\toprule
+Configuration & Accuracy (\%) & ROC-AUC \\
+\midrule
+EfficientNet-B0 (single) & 84.41 \tiny{[82.67, 86.14]} & 0.9660 \tiny{[0.9593, 0.9726]} \\
+ResNet50 (single) & 84.69 \tiny{[82.92, 86.47]} & 0.9673 \tiny{[0.9640, 0.9706]} \\
+Distilled student & 81.88 \tiny{[80.15, 83.61]} & 0.9580 \tiny{[0.9563, 0.9598]} \\
+Ensemble, 2-way & 87.67 \tiny{[85.64, 89.71]} & 0.9741 \tiny{[0.9684, 0.9799]} \\
+Ensemble, 3-way & 88.12 \tiny{[87.38, 88.87]} & 0.9771 \tiny{[0.9738, 0.9804]} \\
+\bottomrule
+\end{tabular}
+\end{table}
