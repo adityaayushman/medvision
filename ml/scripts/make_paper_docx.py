@@ -175,6 +175,11 @@ def _plain_run(paragraph, s: str) -> None:
 def parse_tex_table(path: Path) -> dict:
     text = path.read_text(encoding="utf-8")
     caption = re.search(r"\\caption\{(.+?)\}\s*\n\\label", text, re.S).group(1)
+    # Read the real \label{} rather than guessing it from the filename --
+    # tab_crossdataset.tex's own \label is the shorter "tab:crossdata",
+    # so reconstructing the key from the filename silently mismatches and
+    # produces a caption with no table number at all.
+    label = re.search(r"\\label\{([^}]+)\}", text).group(1)
     body = text.split("\\begin{tabular}")[1].split("\\end{tabular}")[0]
     body = body.split("}", 1)[1]  # drop the {lcc} column spec
     rows = []
@@ -185,7 +190,7 @@ def parse_tex_table(path: Path) -> dict:
         line = line.rstrip("\\").strip()
         cells = [c.strip() for c in line.split("&")]
         rows.append(cells)
-    return {"caption": inline_to_plain(caption), "rows": rows}
+    return {"caption": inline_to_plain(caption), "rows": rows, "label": label}
 
 
 def add_table(doc: Document, label: str, tex_data: dict) -> None:
@@ -298,8 +303,7 @@ def main() -> None:
         m = re.match(r"\\input\{tables/(.+?)\.tex\}", block)
         if m:
             tex_data = parse_tex_table(PAPER_DIR / "tables" / f"{m.group(1)}.tex")
-            label_key = f"tab:{m.group(1).replace('tab_', '')}"
-            add_table(doc, LABELS.get(label_key, "Table"), tex_data)
+            add_table(doc, CAPTION_LABELS.get(tex_data["label"], "Table"), tex_data)
             continue
 
         m = re.match(r"\\begin\{table\}.*?\\caption\{(.+?)\}\s*\\label\{([^}]+)\}\s*"
