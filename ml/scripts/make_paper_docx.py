@@ -25,8 +25,52 @@ import re
 from pathlib import Path
 
 from docx import Document
+from docx.enum.section import WD_SECTION
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
+
+
+def set_two_columns(section, gap_inches: float = 0.25) -> None:
+    """python-docx has no high-level API for multi-column text -- IEEE's
+    two-column body is the whole point of an "IEEE formatted" Word doc, so
+    this drops to the raw section properties XML (w:cols) to set it."""
+    sectPr = section._sectPr
+    cols = sectPr.find(qn("w:cols"))
+    if cols is None:
+        cols = OxmlElement("w:cols")
+        sectPr.append(cols)
+    cols.set(qn("w:num"), "2")
+    cols.set(qn("w:space"), str(int(gap_inches * 1440)))  # twips
+    cols.set(qn("w:equalWidth"), "1")
+
+
+def style_heading(paragraph, size: int, center: bool = True) -> None:
+    """Word's built-in Heading styles are large and blue by default --
+    fine for a plain draft, wrong for something meant to read as IEEE
+    formatted. Force Times New Roman, black, bold, and IEEE's compact size."""
+    if center:
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    for run in paragraph.runs:
+        run.font.name = "Times New Roman"
+        run.font.size = Pt(size)
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(0, 0, 0)
+
+
+def add_bottom_rule(paragraph) -> None:
+    """A thin horizontal rule under the author block, matching the line
+    IEEEtran draws between the front matter and the abstract."""
+    pPr = paragraph._p.get_or_add_pPr()
+    pBdr = OxmlElement("w:pBdr")
+    bottom = OxmlElement("w:bottom")
+    bottom.set(qn("w:val"), "single")
+    bottom.set(qn("w:sz"), "6")
+    bottom.set(qn("w:space"), "4")
+    bottom.set(qn("w:color"), "000000")
+    pBdr.append(bottom)
+    pPr.append(pBdr)
 
 PAPER_DIR = Path("paper")
 TEX = PAPER_DIR / "paper.tex"
@@ -204,6 +248,18 @@ def add_table(doc: Document, label: str, tex_data: dict) -> None:
     ncols = max(len(r) for r in rows)
     table = doc.add_table(rows=len(rows), cols=ncols)
     table.style = "Light Grid Accent 1"
+    table.autofit = False
+    # An IEEE column is ~3.5in wide (see set_two_columns' margins/gap math);
+    # autofit alone can silently let a wide table bleed into the next
+    # column, so give it an explicit total width -- the first column
+    # (usually a row label) gets a larger share than the numeric columns.
+    COL_TOTAL = Inches(3.35)
+    first_w = COL_TOTAL * 0.4 if ncols > 1 else COL_TOTAL
+    rest_w = (COL_TOTAL - first_w) / max(ncols - 1, 1)
+    for j in range(ncols):
+        w = first_w if j == 0 else rest_w
+        for row in table.rows:
+            row.cells[j].width = int(w)
     for i, row in enumerate(rows):
         for j in range(ncols):
             cell_text = inline_to_plain(row[j]) if j < len(row) else ""
@@ -239,19 +295,40 @@ def main() -> None:
     doc = Document()
     style = doc.styles["Normal"]
     style.font.name = "Times New Roman"
-    style.font.size = Pt(11)
+    style.font.size = Pt(10)  # IEEE two-column body size; front matter overrides below
+
+    # ---- Section 1: single-column front matter (title + byline), the
+    # same way IEEEtran itself spans these across the full page width
+    # before the two-column body begins. ----
+    front = doc.sections[0]
+    front.page_width, front.page_height = Inches(8.5), Inches(11)
+    front.left_margin = front.right_margin = Inches(0.75)
+    front.top_margin = front.bottom_margin = Inches(0.75)
 
     t = doc.add_heading(level=0)
     t.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    for run in t.runs:
+        run.font.size = Pt(18)
     add_runs(t, title, bib_order)
+    for run in t.runs:
+        run.font.size = Pt(18)
+        run.font.name = "Times New Roman"
 
     byline = doc.add_paragraph()
     byline.alignment = WD_ALIGN_PARAGRAPH.CENTER
     byline.add_run("Aditya Ayushman Sahoo\n").bold = True
     byline.add_run("Independent Researcher \u2014 please replace with your institution before submission\n")
     byline.add_run("adityaasahoo@gmail.com")
+    add_bottom_rule(byline)
 
-    doc.add_paragraph()
+    # ---- Section 2: the two-column IEEE body, starting with the abstract,
+    # exactly where IEEEtran itself switches to two columns. A CONTINUOUS
+    # break keeps this on the same page rather than starting a new one. ----
+    body_section = doc.add_section(WD_SECTION.CONTINUOUS)
+    body_section.left_margin = body_section.right_margin = Inches(0.62)
+    body_section.top_margin = body_section.bottom_margin = Inches(0.75)
+    set_two_columns(body_section, gap_inches=0.25)
+
     h = doc.add_paragraph()
     h.add_run("Abstract\u2014").bold = True
     add_runs(h, abstract, bib_order)
@@ -280,7 +357,7 @@ def main() -> None:
             section_num += 1
             subsection_letter = 0
             roman = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII"][section_num]
-            doc.add_heading(f"{roman}. {inline_to_plain(m.group(1))}", level=1)
+            style_heading(doc.add_heading(f"{roman}. {inline_to_plain(m.group(1))}", level=1), 11)
             rest = block[m.end():].strip()
             if rest.startswith("\\label"):
                 rest = re.sub(r"^\\label\{[^}]+\}", "", rest).strip()
@@ -293,7 +370,7 @@ def main() -> None:
         if m:
             subsection_letter += 1
             letter = chr(ord("A") + subsection_letter - 1)
-            doc.add_heading(f"{letter}. {inline_to_plain(m.group(1))}", level=2)
+            style_heading(doc.add_heading(f"{letter}. {inline_to_plain(m.group(1))}", level=2), 10, center=False)
             rest = block[m.end():].strip()
             if rest:
                 p = doc.add_paragraph()
@@ -336,10 +413,12 @@ def main() -> None:
         p = doc.add_paragraph()
         add_runs(p, block, bib_order)
 
-    doc.add_heading("References", level=1)
+    style_heading(doc.add_heading("References", level=1), 11)
     for i, entry in enumerate(load_bib_entries(text), start=1):
         p = doc.add_paragraph(style="List Number")
-        p.add_run(entry).font.size = Pt(10)
+        run = p.add_run(entry)
+        run.font.size = Pt(9)
+        run.font.name = "Times New Roman"
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(OUT))
