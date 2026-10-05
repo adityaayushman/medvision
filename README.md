@@ -26,6 +26,10 @@
 
 ---
 
+<p align="center">
+  <img src="medvision/demo.webp" alt="MedVision demo" width="420" />
+</p>
+
 **AI-powered medical imaging intelligence platform** — image processing, ROI
 extraction, explainable deep-learning classification, and a longitudinal patient
 record ("Digital Twin"), unified into one workflow.
