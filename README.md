@@ -1,4 +1,30 @@
-# MedChron AI
+<div align="center">
+
+# 🩺 MedChron AI
+
+**Medical imaging intelligence platform: image processing, ROI extraction, explainable deep-learning classification with Grad-CAM, and a longitudinal patient Digital Twin.**
+
+<p>
+  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white" />
+  <img src="https://img.shields.io/badge/EfficientNet-4285F4?style=for-the-badge&logo=google&logoColor=white" />
+  <img src="https://img.shields.io/badge/OpenCV-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white" />
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
+  <img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" />
+  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" />
+</p>
+
+<p>
+  <a href="https://medchron-ai.vercel.app"><img src="https://img.shields.io/badge/Live_Demo-000000?style=for-the-badge&logo=vercel&logoColor=white" /></a>
+</p>
+
+<p>
+  <img src="https://img.shields.io/github/stars/adityaayushman/medvision?style=social" /> <img src="https://img.shields.io/github/last-commit/adityaayushman/medvision?style=flat-square" /> <img src="https://img.shields.io/github/languages/top/adityaayushman/medvision?style=flat-square" />
+</p>
+
+</div>
+
+---
 
 **AI-powered medical imaging intelligence platform** — image processing, ROI
 extraction, explainable deep-learning classification, and a longitudinal patient
