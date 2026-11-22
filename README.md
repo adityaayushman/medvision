@@ -18,10 +18,6 @@
   <a href="https://medchron-ai.vercel.app"><img src="https://img.shields.io/badge/Live_Demo-000000?style=for-the-badge&logo=vercel&logoColor=white" /></a>
 </p>
 
-<p>
-  <img src="https://img.shields.io/github/stars/adityaayushman/medvision?style=social" /> <img src="https://img.shields.io/github/last-commit/adityaayushman/medvision?style=flat-square" /> <img src="https://img.shields.io/github/languages/top/adityaayushman/medvision?style=flat-square" />
-</p>
-
 </div>
 
 ---
