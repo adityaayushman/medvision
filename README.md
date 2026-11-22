@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🩺 MedChron AI
+# MedChron AI
 
 **Medical imaging intelligence platform: image processing, ROI extraction, explainable deep-learning classification with Grad-CAM, and a longitudinal patient Digital Twin.**
 
@@ -37,7 +37,7 @@ record ("Digital Twin"), unified into one workflow.
 **Live at [medchron-ai.vercel.app](https://medchron-ai.vercel.app)** (frontend,
 Vercel) backed by a FastAPI service on Render.
 
-> ⚕️ **Research & educational software. Not a medical device. Not for clinical
+> **Research & educational software. Not a medical device. Not for clinical
 > use, diagnosis, or treatment decisions.**
 
 ---
