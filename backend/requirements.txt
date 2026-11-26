@@ -5,7 +5,10 @@ uvicorn[standard]>=0.29
 sqlmodel>=0.0.16
 python-multipart>=0.0.9
 pydantic>=2.6
-# Postgres driver (for a Supabase DATABASE_URL in production; unused with SQLite)
+# Postgres drivers (for a Supabase DATABASE_URL in production; unused with SQLite).
+# Both are installed on purpose: SQLAlchemy 2.1 made psycopg 3 the default for postgresql://,
+# SQLAlchemy 2.0 used psycopg2. app/db.py picks whichever is present.
 psycopg2-binary>=2.9
+psycopg[binary]>=3.1
 reportlab>=5.0
 PyJWT>=2.8

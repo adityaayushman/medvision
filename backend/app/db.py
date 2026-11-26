@@ -1,6 +1,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import logging
 import threading
 import time
@@ -10,13 +11,42 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from .config import settings
 
-_url = settings.database_url
-if _url.startswith("postgres://"):
-    _url = _url.replace("postgres://", "postgresql://", 1)
+log = logging.getLogger("medchron.db")
+
+
+def _module_available(name: str) -> bool:
+    return importlib.util.find_spec(name) is not None
+
+
+def resolve_database_url(url: str) -> str:
+    """Return a SQLAlchemy URL whose PostgreSQL driver is actually installed.
+
+    SQLAlchemy 2.1 changed the default driver for ``postgresql://`` from psycopg2 to psycopg
+    (version 3). An image that only has psycopg2 then crashes on import with
+    ``No module named 'psycopg'`` before it serves a single request. Naming the driver
+    explicitly, from whichever is installed, makes that independent of the SQLAlchemy default.
+    Other drivers and non-PostgreSQL URLs are left exactly as given.
+    """
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://"):]
+    scheme, sep, rest = url.partition("://")
+    if not sep or not scheme.startswith("postgresql"):
+        return url
+    requested = scheme.partition("+")[2]
+    if requested and requested not in ("psycopg2", "psycopg"):
+        return url
+    order = ([requested] if requested else []) + [d for d in ("psycopg2", "psycopg") if d != requested]
+    for driver in order:
+        if _module_available(driver):
+            if requested and driver != requested:
+                log.warning("driver %s is not installed; using %s instead", requested, driver)
+            return f"postgresql+{driver}://{rest}"
+    return url  # no driver installed: let SQLAlchemy report it in its usual way
+
+
+_url = resolve_database_url(settings.database_url)
 
 _is_sqlite = _url.startswith("sqlite")
-
-log = logging.getLogger("medchron.db")
 
 # Seconds to wait when opening a connection to a hosted database. Without a limit, a paused
 # or unreachable Postgres makes every connection attempt block for the operating system's TCP
