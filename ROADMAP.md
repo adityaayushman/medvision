@@ -2,12 +2,12 @@
 
 This document tracks the platform's version progression. Each phase is
 scoped by what it actually takes to build and verify — not just what it
-takes to describe — so priorities can be set honestly. v1-v4 are live;
+takes to describe — so priorities can be set honestly. v1-v4 are built;
 what's below their headers is what actually happened, not a plan.
 
-> Live at [medchron-ai.vercel.app](https://medchron-ai.vercel.app)
-> (frontend) + a FastAPI backend on Render. See `README.md` for the
-> present-tense status table.
+> Frontend deployed at [medchron-ai.vercel.app](https://medchron-ai.vercel.app).
+> The FastAPI backend on Render is currently offline (checked 2026-11-27).
+> See `README.md` for the present-tense status table.
 
 ---
 
@@ -31,14 +31,15 @@ unmodified while each phase lands. Concretely:
 ---
 
 ## Version 2 — Multi-Modality Expansion
-**Status: chest X-ray and brain MRI live. Mammography remains the platform's
+**Status: chest X-ray and brain MRI trained and evaluated (the hosted backend is
+currently offline). Mammography remains the platform's
 one open, honestly-documented gap** — not for lack of trying: three
 independent modeling attempts, each a real, evaluated result.
 
 | Modality | Status | Real result |
 |---|---|---|
-| Chest X-ray | ✅ Live (v1) | accuracy 64%, ROC-AUC 0.825 |
-| Brain MRI (4-class tumor classification) | ✅ Live | accuracy 85.7%, macro F1 0.861, ROC-AUC 0.969 (held-out test, sartajbhuvaji/brain-tumor-classification-mri, 3,264 images) — reseeded from the original 82.0% checkpoint, which turned out to be the worst of 5 seeds |
+| Chest X-ray | ✅ Trained (v1) | accuracy 64%, ROC-AUC 0.825 |
+| Brain MRI (4-class tumor classification) | ✅ Trained | accuracy 85.7%, macro F1 0.861, ROC-AUC 0.969 (held-out test, sartajbhuvaji/brain-tumor-classification-mri, 3,264 images) — reseeded from the original 82.0% checkpoint, which turned out to be the worst of 5 seeds |
 | Mammography (Benign/Malignant) | ⏸️ **Not serving predictions** | see below |
 
 A cross-modality bug was caught and fixed along the way: quality-gate
@@ -125,10 +126,10 @@ bottleneck — or accept 56.6% as still below a clinically-useful bar and
 leave mammography undeployed.
 
 ## Version 3 — AI-Assisted Reporting & Model Improvements
-**Status: report drafting live. Ensemble built and evaluated, not
+**Status: report drafting built. Ensemble built and evaluated, not
 deployable on the current hosting tier.**
 
-- **AI-assisted report drafting** — ✅ **live.** The prediction payload
+- **AI-assisted report drafting** — ✅ **built.** The prediction payload
   renders as a structured draft report (PDF/text), labeled **"AI Draft —
   Requires Clinician Review"**, no auto-finalization path.
 - **Multi-model ensemble** — ✅ built (`EnsemblePredictor`, soft-voting
@@ -175,7 +176,7 @@ deployable on the current hosting tier.**
   RAM or a smaller/quantized backbone, not more loading-strategy cleverness.
 
 ## Version 4 — Clinical Dashboard for Hospitals
-**Status: live at `/dashboard`.** Auth (PBKDF2 password hashing, JWT
+**Status: built; at `/dashboard` when the backend is running.** Auth (PBKDF2 password hashing, JWT
 sessions, roles: radiologist/admin), org-scoped patient lists, a
 case-review queue, and an audit trail all shipped as a separate surface —
 the single-user Records/Patients pages kept working unmodified throughout.

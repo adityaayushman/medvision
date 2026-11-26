@@ -15,7 +15,7 @@
 </p>
 
 <p>
-  <a href="https://medchron-ai.vercel.app"><img src="https://img.shields.io/badge/Live_Demo-000000?style=for-the-badge&logo=vercel&logoColor=white" /></a>
+  <a href="https://medchron-ai.vercel.app"><img src="https://img.shields.io/badge/Frontend_preview-000000?style=for-the-badge&logo=vercel&logoColor=white" /></a>
 </p>
 
 </div>
@@ -30,8 +30,10 @@
 extraction, explainable deep-learning classification, and a longitudinal patient
 record ("Digital Twin"), unified into one workflow.
 
-**Live at [medchron-ai.vercel.app](https://medchron-ai.vercel.app)** (frontend,
-Vercel) backed by a FastAPI service on Render.
+**Frontend:** [medchron-ai.vercel.app](https://medchron-ai.vercel.app) on Vercel.
+The hosted FastAPI backend on Render is currently offline (checked 2026-11-27), so
+analysis, sign-in and records do not work on the hosted site. Run the full stack
+locally to use everything: see [Run the full stack](#run-the-full-stack).
 
 > **Research & educational software. Not a medical device. Not for clinical
 > use, diagnosis, or treatment decisions.**
@@ -73,8 +75,8 @@ MedChronAI/
 │   ├── tests/              # pytest (no dataset required)
 │   ├── data/               # datasets (git-ignored)
 │   └── artifacts/          # model weights & outputs (git-ignored)
-├── backend/                # FastAPI inference API + auth + patient records (live)
-├── frontend/               # Next.js analyze/records UI + clinical dashboard (live)
+├── backend/                # FastAPI inference API + auth + patient records
+├── frontend/               # Next.js analyze/records UI + clinical dashboard
 ├── assets/samples/         # sample images
 ├── docs/                   # dataset shortlist, design docs
 └── _legacy/                # original prototype scripts, kept for reference
@@ -108,14 +110,14 @@ tensor = pipe.model_input(result)      # 224x224x3 float32, ready for a backbone
 | Model layer (VGG16/ResNet50/DenseNet121/EfficientNet-B0, swappable) | ✅ done, tested |
 | Evaluation (metrics, ROC/AUC, confusion matrix) | ✅ done |
 | Explainability (Grad-CAM) | ✅ done, verified |
-| Backend (FastAPI + auth + patient records + timeline) | ✅ **live** |
-| Frontend (Next.js analyze/records + clinical dashboard) | ✅ **live** |
-| Chest X-ray | ✅ **live** — 64% acc, ROC-AUC 0.825 |
-| Brain MRI (4-class tumor classification) | ✅ **live** — 85.7% acc, macro F1 0.861, ROC-AUC 0.969 (reseeded; the previous 82.0% checkpoint was the worst of 5 seeds — see `docs/EXPERIMENTS.md`) |
+| Backend (FastAPI + auth + patient records + timeline) | ✅ built and tested; the hosted instance is **offline** |
+| Frontend (Next.js analyze/records + clinical dashboard) | ✅ deployed on Vercel; analysis and records need the backend |
+| Chest X-ray | ✅ trained and evaluated — 64% acc, ROC-AUC 0.825 |
+| Brain MRI (4-class tumor classification) | ✅ trained and evaluated — 85.7% acc, macro F1 0.861, ROC-AUC 0.969 (reseeded; the previous 82.0% checkpoint was the worst of 5 seeds — see `docs/EXPERIMENTS.md`) |
 | Brain MRI ensemble (2-3 EfficientNet-B0/ResNet50/DenseNet121) | ✅ built, evaluated, beats the single-model baseline — **not deployed**: its own memory footprint (~490-580MB, measured with the exact CPU-only torch build Render runs) exceeds the free tier's 512MB ceiling regardless of loading strategy |
 | Mammography (Benign/Malignant) | ⏸️ **not deployed** — see below |
-| AI-assisted report drafting | ✅ **live** |
-| Clinical dashboard (auth, org-scoped records, audit trail) | ✅ **live** at `/dashboard` |
+| AI-assisted report drafting | ✅ built; needs the backend |
+| Clinical dashboard (auth, org-scoped records, audit trail) | ✅ built; at `/dashboard` when the backend is running |
 | Mobile app | ⏳ planned (PWA — see `ROADMAP.md`) |
 
 **Mammography, in detail:** the honest, still-open problem on this platform.
