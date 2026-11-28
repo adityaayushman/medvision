@@ -23,7 +23,7 @@
 ---
 
 <p align="center">
-  <img src="medvision/demo.webp" alt="MedVision demo" width="420" />
+  <img src="medvision/demo.webp" alt="MedVision demo" width="640" />
 </p>
 
 **AI-powered medical imaging intelligence platform** — image processing, ROI
